@@ -60,7 +60,7 @@
     let agentId = null;
     
     // Find the script tag that loaded this widget
-    const scripts = document.querySelectorAll('script[src*="widget.js"]');
+    const scripts = document.querySelectorAll('script[src*="widget"]');
     for (const script of scripts) {
       const scriptUrl = new URL(script.src, window.location.origin);
       if (!apiKey) apiKey = scriptUrl.searchParams.get('apiKey');
