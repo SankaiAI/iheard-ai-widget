@@ -988,12 +988,14 @@
         box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
       }
 
-      .iheard-send-btn {
+
+      .iheard-action-btn {
         position: absolute;
         right: 8px;
         top: 50%;
         transform: translateY(-50%);
-        padding: 6px;
+        padding: 0;
+        margin: 0;
         border: none;
         border-radius: 50%;
         cursor: pointer;
@@ -1012,19 +1014,19 @@
         line-height: 1;
       }
 
-      .iheard-send-btn:hover {
+      .iheard-action-btn:hover {
         transform: translateY(-50%) scale(1.05);
         background: rgba(255, 255, 255, 0.2);
         color: rgba(74, 144, 226, 1);
       }
 
-      .iheard-send-btn:disabled {
+      .iheard-action-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        transform: none;
+        transform: translateY(-50%);
       }
 
-      .iheard-send-btn svg {
+      .iheard-action-btn svg {
         width: 16px;
         height: 16px;
         display: block;
@@ -1327,6 +1329,21 @@
           padding: 6px 55px 6px 20px !important;
         }
         
+        .iheard-action-btn {
+          position: absolute !important;
+          right: 12px !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          width: 28px !important;
+          height: 28px !important;
+          z-index: 10 !important;
+          border-radius: 6px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        
+        
         .iheard-powered-by {
           font-size: 9px !important;
           margin-top: 2px !important;
@@ -1516,13 +1533,13 @@
     input.className = 'iheard-input';
     input.placeholder = widgetConfig.inputPlaceholder;
     
-    const sendBtn = document.createElement('button');
-    sendBtn.className = 'iheard-send-btn';
-    sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22,2 15,22 11,13 2,9 22,2"></polygon></svg>';
-    sendBtn.title = 'Send message';
+    const actionBtn = document.createElement('button');
+    actionBtn.className = 'iheard-action-btn';
+    actionBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22,2 15,22 11,13 2,9 22,2"></polygon></svg>';
+    actionBtn.title = 'Action';
 
     inputWrapper.appendChild(input);
-    inputWrapper.appendChild(sendBtn);
+    inputWrapper.appendChild(actionBtn);
     inputContainer.appendChild(inputWrapper);
 
     // Add "Powered by" text
@@ -1577,7 +1594,6 @@
     const button = widget.querySelector('.iheard-widget-button');
     const headerRect = widget.querySelector('.iheard-chat-header-rect');
     const callBtn = widget.querySelector('.iheard-call-btn');
-    const sendBtn = widget.querySelector('.iheard-send-btn');
     const input = widget.querySelector('.iheard-input');
     const chatInterface = widget.querySelector('.iheard-chat-interface');
 
@@ -1680,7 +1696,6 @@
       simulateAIResponse(message);
     }
 
-    sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         sendMessage();
@@ -1740,8 +1755,6 @@
   // Simulate AI response (replace with real API call)
   function simulateAIResponse(userMessage) {
     isConnecting = true;
-    const sendBtn = document.querySelector('.iheard-send-btn');
-    if (sendBtn) sendBtn.disabled = true;
 
     const typingIndicator = showTypingIndicator();
 
@@ -1773,7 +1786,6 @@
       addAgentMessage(response);
       
       isConnecting = false;
-      if (sendBtn) sendBtn.disabled = false;
     }, 1500 + Math.random() * 1000); // Random delay between 1.5-2.5 seconds
   }
 
