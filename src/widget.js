@@ -7,6 +7,10 @@
 
   console.log('🚀 iHeardAI Voice Agent Widget Loading...');
 
+  // Supabase configuration
+  const SUPABASE_URL = 'https://migtkyxdbsmtktzklouc.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZ3RreXhkYnNtdGt0emtsb3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwNjkzNzMsImV4cCI6MjA2ODY0NTM3M30.Aj3Cgqsj7zBhHwdyOnDOhVPsj23ZgF4fy83zl4rjHus';
+
   // Widget configuration with defaults
   let widgetConfig = {
     // Agent settings
@@ -47,37 +51,190 @@
   let isConnecting = false;
   let messages = [];
   let currentSession = null;
+  let currentAgentId = null;
+  let configPollingInterval = null;
 
   // Get configuration from URL parameters or data attributes
   function getInitialConfig() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const apiKey = urlParams.get('apiKey');
-    const agentId = urlParams.get('agentId');
+    // Try to get parameters from the script tag that loaded this widget
+    let apiKey = null;
+    let agentId = null;
+    
+    // Find the script tag that loaded this widget
+    const scripts = document.querySelectorAll('script[src*="widget.js"]');
+    for (const script of scripts) {
+      const scriptUrl = new URL(script.src, window.location.origin);
+      if (!apiKey) apiKey = scriptUrl.searchParams.get('apiKey');
+      if (!agentId) agentId = scriptUrl.searchParams.get('agentId');
+    }
+    
+    // Fallback to page URL parameters if not found in script
+    if (!apiKey || !agentId) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (!apiKey) apiKey = urlParams.get('apiKey');
+      if (!agentId) agentId = urlParams.get('agentId');
+    }
+    
+    console.log('🔍 getInitialConfig called');
+    console.log('🔍 Script tags found:', scripts.length);
+    console.log('🔍 URL params:', { apiKey, agentId });
+    console.log('🔍 Current URL:', window.location.href);
+    
+    // Store agent ID for polling
+    currentAgentId = agentId;
+    console.log('🔍 Stored currentAgentId:', currentAgentId);
     
     // If we have an API key, fetch configuration from API
     if (apiKey || agentId) {
+      console.log('🔍 Calling fetchConfiguration with:', apiKey || agentId);
       fetchConfiguration(apiKey || agentId);
+      // Start polling for configuration updates
+      startConfigPolling();
     } else {
+      console.log('🔍 No API key or agent ID, using default configuration');
       // Use default configuration
       initializeWidget();
     }
   }
 
-  // Fetch configuration from API
-  async function fetchConfiguration(identifier) {
+  // Start polling for configuration updates
+  function startConfigPolling() {
+    if (!currentAgentId) return;
+    
+    // Clear existing interval
+    if (configPollingInterval) {
+      clearInterval(configPollingInterval);
+    }
+    
+    // Poll every 5 seconds for development (adjust for production)
+    configPollingInterval = setInterval(() => {
+      if (currentAgentId) {
+        console.log('🔄 Polling for configuration updates...');
+        fetchConfiguration(currentAgentId, true); // true = silent update
+      }
+    }, 5000); // 5 seconds
+  }
+
+  // Stop polling
+  function stopConfigPolling() {
+    if (configPollingInterval) {
+      clearInterval(configPollingInterval);
+      configPollingInterval = null;
+    }
+  }
+
+  // Fetch configuration directly from Supabase
+  async function fetchConfiguration(identifier, silent = false) {
     try {
-      const response = await fetch(`/api/voice-agent/config/${identifier}`);
+      if (!silent) {
+        console.log('🔍 Fetching configuration from Supabase for agent ID:', identifier);
+      }
+      
+      // Query Supabase directly using REST API
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/VoiceAgentConfig?id=eq.${identifier}&select=*`, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      });
+      
+      if (!silent) {
+        console.log('📡 Supabase Response status:', response.status);
+        console.log('📡 Supabase Response ok:', response.ok);
+      }
+      
       if (response.ok) {
         const data = await response.json();
-        widgetConfig = { ...widgetConfig, ...data.config };
-        console.log('✅ Widget configuration loaded:', widgetConfig);
+        
+        if (!silent) {
+          console.log('📦 Supabase Response data:', data);
+        }
+        
+        // Check if we got data and agent is active/enabled
+        if (data && data.length > 0) {
+          const config = data[0];
+          
+          // Check if agent is active and enabled
+          if (!config.isActive || !config.isEnabled) {
+            if (!silent) {
+              console.warn('⚠️ Agent is not active or enabled:', { isActive: config.isActive, isEnabled: config.isEnabled });
+            }
+            return;
+          }
+          
+          // Map Supabase VoiceAgentConfig fields to widget config
+          widgetConfig = {
+            ...widgetConfig,
+            // Agent settings from Supabase
+            agentName: config.agentName || widgetConfig.agentName,
+            avatar: config.avatarUrl || widgetConfig.avatar,
+            personality: config.personality || widgetConfig.personality,
+            welcomeMessage: config.welcomeMessage || widgetConfig.welcomeMessage,
+            voiceType: config.voiceType || widgetConfig.voiceType,
+            language: config.language || widgetConfig.language,
+            responseStyle: config.responseStyle || widgetConfig.responseStyle,
+            voiceEnabled: config.voiceEnabled ?? widgetConfig.voiceEnabled,
+            chatEnabled: config.chatEnabled ?? widgetConfig.chatEnabled,
+            
+            // Widget appearance from Supabase
+            position: config.position || widgetConfig.position,
+            buttonText: config.buttonText || widgetConfig.buttonText,
+            chatTitle: config.chatTitle || widgetConfig.chatTitle,
+            inputPlaceholder: config.inputPlaceholder || widgetConfig.inputPlaceholder,
+            primaryColor: normalizeColor(config.primaryColor || widgetConfig.primaryColor),
+            gradientEnabled: config.gradientEnabled ?? widgetConfig.gradientEnabled,
+            gradientColor1: normalizeColor(config.gradientColor1 || widgetConfig.gradientColor1),
+            gradientColor2: normalizeColor(config.gradientColor2 || widgetConfig.gradientColor2),
+            gradientDirection: config.gradientDirection || widgetConfig.gradientDirection,
+            glassEffect: config.glassEffect ?? widgetConfig.glassEffect,
+            widgetStyle: config.widgetStyle || widgetConfig.widgetStyle,
+            showButtonText: config.showButtonText ?? widgetConfig.showButtonText,
+            chatBackgroundColor: normalizeColor(config.chatBackgroundColor || widgetConfig.chatBackgroundColor),
+            useDefaultAppearance: config.useDefaultAppearance ?? widgetConfig.useDefaultAppearance,
+            
+            // Widget state from Supabase
+            isActive: config.isActive ?? widgetConfig.isActive,
+            isEnabled: config.isEnabled ?? widgetConfig.isEnabled
+          };
+          
+          if (!silent) {
+            console.log('✅ Widget configuration loaded from Supabase:', widgetConfig);
+            console.log('📍 Position from Supabase:', widgetConfig.position);
+          } else {
+            console.log('🔄 Configuration updated from Supabase');
+            console.log('📍 Position from Supabase:', widgetConfig.position);
+          }
+          
+          // Update widget if already initialized
+          if (isInitialized) {
+            console.log('🎨 Updating widget appearance...');
+            updateWidgetFromConfig();
+          }
+        } else {
+          if (!silent) {
+            console.warn('⚠️ No configuration found for agent ID:', identifier);
+            console.log('Using default configuration');
+          }
+        }
       } else {
-        console.warn('⚠️ Failed to load configuration, using defaults');
+        if (!silent) {
+          console.warn('⚠️ Failed to load configuration from Supabase, status:', response.status);
+          console.warn('⚠️ Response text:', await response.text());
+          console.log('Using default configuration');
+        }
       }
     } catch (error) {
-      console.warn('⚠️ Error loading configuration:', error);
+      if (!silent) {
+        console.warn('⚠️ Error loading configuration from Supabase:', error);
+        console.log('Using default configuration');
+      }
     } finally {
-      initializeWidget();
+      if (!isInitialized) {
+        initializeWidget();
+      }
     }
   }
 
@@ -150,33 +307,61 @@
         position: absolute;
         width: 350px;
         height: 500px;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.1);
         display: none;
         flex-direction: column;
         overflow: hidden;
-        background: white;
-        border: 1px solid #e5e7eb;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: widgetSlideIn 0.3s ease-out;
+      }
+
+      @keyframes widgetSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
 
       .iheard-chat-header {
-        padding: 16px;
-        border-bottom: 1px solid #e5e7eb;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
         align-items: center;
         justify-content: space-between;
         color: white;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        position: relative;
+      }
+
+      .iheard-chat-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+        pointer-events: none;
       }
 
       .iheard-chat-header .agent-info {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
+        position: relative;
+        z-index: 1;
       }
 
       .iheard-chat-header .agent-avatar {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -184,11 +369,14 @@
         background: white;
         color: #333;
         font-weight: bold;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 2px solid rgba(255,255,255,0.2);
       }
 
       .iheard-chat-header .agent-name {
         font-weight: 600;
         font-size: 16px;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
       }
 
       .iheard-close-btn {
@@ -196,38 +384,85 @@
         border: none;
         color: white;
         cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        font-size: 18px;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 20px;
         line-height: 1;
-        transition: background-color 0.2s;
+        transition: all 0.2s;
+        position: relative;
+        z-index: 1;
       }
 
       .iheard-close-btn:hover {
         background: rgba(255,255,255,0.1);
+        transform: scale(1.1);
+      }
+
+      .iheard-call-btn {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        position: relative;
+        z-index: 1;
+      }
+
+      .iheard-call-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+      }
+
+      .iheard-call-btn svg {
+        width: 14px;
+        height: 14px;
       }
 
       .iheard-chat-messages {
         flex: 1;
-        padding: 16px;
+        padding: 20px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        background: #f9fafb;
+        gap: 16px;
+        background: #6b7280;
+        position: relative;
+      }
+
+      .iheard-chat-messages::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(107, 114, 128, 0.9) 0%, rgba(75, 85, 99, 0.9) 100%);
+        pointer-events: none;
       }
 
       .iheard-message {
-        padding: 12px;
-        border-radius: 12px;
-        max-width: 80%;
+        padding: 16px;
+        border-radius: 16px;
+        max-width: 85%;
         word-wrap: break-word;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       }
 
       .iheard-agent-message {
         background: white;
-        border: 1px solid #e5e7eb;
+        border: 1px solid rgba(255,255,255,0.2);
         align-self: flex-start;
+        animation: messageSlideIn 0.3s ease-out;
       }
 
       .iheard-user-message {
@@ -235,6 +470,18 @@
         color: white;
         align-self: flex-end;
         margin-left: auto;
+        animation: messageSlideIn 0.3s ease-out;
+      }
+
+      @keyframes messageSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .iheard-typing-indicator {
@@ -266,45 +513,66 @@
       }
 
       .iheard-chat-input {
-        padding: 16px;
-        border-top: 1px solid #e5e7eb;
+        padding: 20px;
+        border-top: 1px solid rgba(255,255,255,0.1);
         display: flex;
-        gap: 8px;
-        background: white;
+        gap: 12px;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(10px);
+        position: relative;
+        z-index: 1;
       }
 
       .iheard-input {
         flex: 1;
-        padding: 8px 12px;
-        border: 1px solid #d1d5db;
-        border-radius: 20px;
+        padding: 12px 16px;
+        border: 1px solid rgba(209, 213, 219, 0.5);
+        border-radius: 24px;
         outline: none;
         font-size: 14px;
-        transition: border-color 0.2s;
+        transition: all 0.2s;
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(5px);
       }
 
       .iheard-input:focus {
         border-color: var(--primary-color, #ee5cee);
+        box-shadow: 0 0 0 3px rgba(238, 92, 238, 0.1);
+        background: white;
       }
 
       .iheard-send-btn {
-        padding: 8px 12px;
+        padding: 12px;
         border: none;
-        border-radius: 20px;
+        border-radius: 50%;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 500;
         color: white;
-        transition: opacity 0.2s;
+        transition: all 0.2s;
+        background: var(--primary-color, #ee5cee);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(238, 92, 238, 0.3);
+        min-width: 44px;
+        height: 44px;
       }
 
       .iheard-send-btn:hover {
-        opacity: 0.9;
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(238, 92, 238, 0.4);
       }
 
       .iheard-send-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: none;
+      }
+
+      .iheard-send-btn svg {
+        width: 18px;
+        height: 18px;
       }
 
       .iheard-voice-btn {
@@ -332,6 +600,18 @@
       @keyframes pulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.1); }
+      }
+
+      .iheard-powered-by {
+        text-align: center;
+        padding: 12px 20px;
+        color: white;
+        font-size: 12px;
+        font-weight: 500;
+        background: rgba(0,0,0,0.1);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        position: relative;
+        z-index: 1;
       }
 
       .iheard-widget-hidden {
@@ -429,9 +709,17 @@
         <div class="agent-avatar">
           ${widgetConfig.avatar ? `<img src="${widgetConfig.avatar}" alt="${widgetConfig.agentName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : widgetConfig.agentName.charAt(0).toUpperCase()}
         </div>
-        <span class="agent-name">${widgetConfig.chatTitle}</span>
+        <span class="agent-name">${widgetConfig.agentName}</span>
       </div>
-      <button class="iheard-close-btn" title="Close chat">×</button>
+      <div style="display: flex; align-items: center; gap: 8px; position: relative; z-index: 1;">
+        <button class="iheard-call-btn" title="Voice call">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          Call
+        </button>
+        <button class="iheard-close-btn" title="Close chat">×</button>
+      </div>
     `;
 
     // Chat messages
@@ -455,7 +743,8 @@
     
     const sendBtn = document.createElement('button');
     sendBtn.className = 'iheard-send-btn';
-    sendBtn.textContent = 'Send';
+    sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22,2 15,22 11,13 2,9 22,2"></polygon></svg>';
+    sendBtn.title = 'Send message';
     sendBtn.style.background = widgetConfig.primaryColor;
 
     // Voice button (if enabled)
@@ -470,10 +759,16 @@
     inputContainer.appendChild(input);
     inputContainer.appendChild(sendBtn);
 
+    // Powered by footer
+    const poweredBy = document.createElement('div');
+    poweredBy.className = 'iheard-powered-by';
+    poweredBy.textContent = 'Powered by iHeard.ai';
+
     // Assemble chat interface
     chatInterface.appendChild(header);
     chatInterface.appendChild(messagesContainer);
     chatInterface.appendChild(inputContainer);
+    chatInterface.appendChild(poweredBy);
 
     // Assemble widget
     container.appendChild(button);
@@ -673,6 +968,115 @@
     return colorMap[color.toLowerCase()] || '#ffffff';
   }
 
+  // Update widget appearance from current config
+  function updateWidgetFromConfig() {
+    const widget = document.getElementById('iheard-ai-widget');
+    if (!widget) {
+      console.error('❌ Widget element not found!');
+      return;
+    }
+    
+    console.log('🎯 Found widget element:', widget);
+    console.log('🎯 Current widget styles:', {
+      position: widget.style.position,
+      bottom: widget.style.bottom,
+      top: widget.style.top,
+      left: widget.style.left,
+      right: widget.style.right
+    });
+
+    // Update main widget container position
+    console.log('🎯 Updating widget position to:', widgetConfig.position);
+    
+    if (widgetConfig.position.includes('bottom')) {
+      widget.style.setProperty('bottom', '20px', 'important');
+      widget.style.setProperty('top', 'auto', 'important');
+      console.log('📍 Set bottom: 20px, top: auto (with !important)');
+    } else {
+      widget.style.setProperty('top', '20px', 'important');
+      widget.style.setProperty('bottom', 'auto', 'important');
+      console.log('📍 Set top: 20px, bottom: auto (with !important)');
+    }
+    
+    if (widgetConfig.position.includes('right')) {
+      widget.style.setProperty('right', '20px', 'important');
+      widget.style.setProperty('left', 'auto', 'important');
+      console.log('📍 Set right: 20px, left: auto (with !important)');
+    } else {
+      widget.style.setProperty('left', '20px', 'important');
+      widget.style.setProperty('right', 'auto', 'important');
+      console.log('📍 Set left: 20px, right: auto (with !important)');
+    }
+    
+    // Log the final styles after setting them
+    console.log('🎯 Final widget styles:', {
+      position: widget.style.position,
+      bottom: widget.style.bottom,
+      top: widget.style.top,
+      left: widget.style.left,
+      right: widget.style.right
+    });
+
+    // Update button
+    const button = widget.querySelector('.iheard-widget-button');
+    if (button) {
+      if (widgetConfig.gradientEnabled) {
+        button.style.background = `linear-gradient(${widgetConfig.gradientDirection}, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+      } else {
+        button.style.background = widgetConfig.primaryColor;
+      }
+      
+      if (widgetConfig.showButtonText) {
+        const textSpan = button.querySelector('span');
+        if (textSpan) {
+          textSpan.textContent = widgetConfig.buttonText;
+        }
+      }
+    }
+
+    // Update chat interface
+    const chatInterface = widget.querySelector('.iheard-chat-interface');
+    if (chatInterface) {
+      chatInterface.style.background = widgetConfig.chatBackgroundColor;
+      
+      // Update position
+      if (widgetConfig.position.includes('bottom')) {
+        chatInterface.style.bottom = '70px';
+        chatInterface.style.top = 'auto';
+      } else {
+        chatInterface.style.top = '70px';
+        chatInterface.style.bottom = 'auto';
+      }
+      
+      if (widgetConfig.position.includes('right')) {
+        chatInterface.style.right = '0';
+        chatInterface.style.left = 'auto';
+      } else {
+        chatInterface.style.left = '0';
+        chatInterface.style.right = 'auto';
+      }
+    }
+
+    // Update header
+    const header = widget.querySelector('.iheard-chat-header');
+    if (header) {
+      header.style.background = widgetConfig.primaryColor;
+      
+      const agentName = header.querySelector('.agent-name');
+      if (agentName) {
+        agentName.textContent = widgetConfig.agentName;
+      }
+    }
+
+    // Update input placeholder
+    const input = widget.querySelector('.iheard-input');
+    if (input) {
+      input.placeholder = widgetConfig.inputPlaceholder;
+    }
+
+    console.log('🎨 Widget appearance updated from configuration');
+  }
+
   // Update configuration
   function updateConfig(newConfig) {
     const oldConfig = { ...widgetConfig };
@@ -768,7 +1172,18 @@
     getConfig: () => widgetConfig,
     isOpen: () => isOpen,
     isInitialized: () => isInitialized,
+    refreshConfig: () => {
+      if (currentAgentId) {
+        console.log('🔄 Manual config refresh triggered');
+        fetchConfiguration(currentAgentId, false);
+      } else {
+        console.warn('⚠️ No agent ID available for refresh');
+      }
+    },
     destroy: () => {
+      // Stop polling
+      stopConfigPolling();
+      
       // Remove widget completely from DOM
       const existingWidget = document.getElementById('iheard-ai-widget');
       if (existingWidget) {
@@ -780,6 +1195,7 @@
       }
       isInitialized = false;
       isOpen = false;
+      currentAgentId = null;
       console.log('🗑️ Widget destroyed');
     }
   };

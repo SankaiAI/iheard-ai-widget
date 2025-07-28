@@ -6,19 +6,33 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // Enable CORS for widget testing
 app.use(cors());
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '..')));
+// Serve static files (but exclude widget files to avoid conflicts)
+app.use(express.static(path.join(__dirname, '..'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // Serve widget source
 app.get('/widget.js', (req, res) => {
   const widgetPath = path.join(__dirname, '..', 'src', 'widget.js');
+  console.log('🔍 Request for widget.js, serving from:', widgetPath);
+  console.log('🔍 File exists:', fs.existsSync(widgetPath));
+  
   if (fs.existsSync(widgetPath)) {
     res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(widgetPath);
   } else {
     res.status(404).send('Widget not found');
@@ -136,6 +150,15 @@ app.get('/test', (req, res) => {
             <button onclick="setDarkTheme()">Dark Theme</button>
             <button onclick="setBottomRight()">Bottom Right</button>
             <button onclick="setBottomLeft()">Bottom Left</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Supabase Integration Test</h3>
+            <p>Test with a real agent ID from your Supabase database:</p>
+            <input type="text" id="agentId" placeholder="Enter agent ID (e.g., clx123...)" style="width: 300px; padding: 8px; margin-right: 10px;">
+            <button onclick="testWithAgentId()">Load Agent Config</button>
+            <button onclick="refreshConfig()" style="background: #28a745;">Refresh Config</button>
+            <div id="supabase-status" class="status info">Ready to test Supabase integration</div>
         </div>
         
         <div class="test-section">
@@ -257,6 +280,52 @@ app.get('/test', (req, res) => {
             if (window.iHeardAIWidget) {
                 window.iHeardAIWidget.updateConfig({ position: 'bottom-left' });
                 log('Set position to bottom-left');
+            }
+        }
+
+        function testWithAgentId() {
+            const agentId = document.getElementById('agentId').value.trim();
+            if (!agentId) {
+                document.getElementById('supabase-status').className = 'status error';
+                document.getElementById('supabase-status').textContent = 'Please enter an agent ID';
+                return;
+            }
+
+            document.getElementById('supabase-status').className = 'status info';
+            document.getElementById('supabase-status').textContent = 'Loading agent configuration...';
+            
+            // Destroy current widget
+            if (window.iHeardAIWidget) {
+                window.iHeardAIWidget.destroy();
+            }
+
+            // Reload widget with agent ID
+            const script = document.createElement('script');
+            script.src = '/widget.js?agentId=' + encodeURIComponent(agentId);
+            script.onload = () => {
+                document.getElementById('supabase-status').className = 'status success';
+                document.getElementById('supabase-status').textContent = 'Agent configuration loaded! Check console for details.';
+                log('Testing with agent ID: ' + agentId);
+            };
+            script.onerror = () => {
+                document.getElementById('supabase-status').className = 'status error';
+                document.getElementById('supabase-status').textContent = 'Failed to load agent configuration';
+                log('Failed to load agent configuration for ID: ' + agentId);
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        function refreshConfig() {
+            if (window.iHeardAIWidget && window.iHeardAIWidget.refreshConfig) {
+                window.iHeardAIWidget.refreshConfig();
+                document.getElementById('supabase-status').className = 'status info';
+                document.getElementById('supabase-status').textContent = 'Refreshing configuration...';
+                log('Manual config refresh triggered');
+            } else {
+                document.getElementById('supabase-status').className = 'status error';
+                document.getElementById('supabase-status').textContent = 'Widget not loaded or refresh not available';
+                log('ERROR: Cannot refresh config - widget not loaded');
             }
         }
 
