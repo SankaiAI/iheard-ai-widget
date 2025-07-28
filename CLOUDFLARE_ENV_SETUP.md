@@ -1,38 +1,42 @@
 # Cloudflare Pages Environment Variables Setup
 
-## 🔐 **Setting Up Environment Variables in Cloudflare Pages**
+## 🔐 **Recommended Approach: Cloudflare Pages Environment Variables**
 
-### **1. Access Cloudflare Pages Dashboard**
+### **Why This Approach is Better:**
+- ✅ **No GitHub secrets needed**
+- ✅ **Runtime injection** (more secure)
+- ✅ **Easy to manage** in Cloudflare dashboard
+- ✅ **Environment isolation** (dev/prod can use different values)
+
+### **Step 1: Add Environment Variables to Cloudflare Pages**
 
 1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
 2. Navigate to **Pages** → **iheard-ai-widget**
 3. Click on **Settings** tab
 4. Scroll down to **Environment variables** section
 
-### **2. Add Environment Variables**
-
-Add these variables for **Production**:
+### **Step 2: Add These Variables for Production**
 
 | Variable Name | Value | Description |
 |---------------|-------|-------------|
 | `SUPABASE_URL` | `https://migtkyxdbsmtktzklouc.supabase.co` | Your Supabase project URL |
 | `SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZ3RreXhkYnNtdGt0emtsb3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwNjkzNzMsImV4cCI6MjA2ODY0NTM3M30.Aj3Cgqsj7zBhHwdyOnDOhVPsj23ZgF4fy83zl4rjHus` | Your Supabase anon key |
 
-### **3. Add Preview Environment Variables (Optional)**
+### **Step 3: Update Widget to Use Runtime Environment Variables**
 
-For staging/testing, add the same variables to **Preview** environment.
+The widget will access these variables at runtime using Cloudflare's environment variable injection.
 
-### **4. Environment Variable Access in Build**
+## 🔄 **Simplified Build Process**
 
-The environment variables will be available during build time and can be injected into the widget code.
-
-## 🔄 **Updated Build Process**
-
-The build script will now inject environment variables into the widget code.
+With this approach:
+- **No GitHub secrets** needed
+- **No build-time injection** required
+- **Cloudflare handles** environment variable injection
+- **More secure** - variables not embedded in code
 
 ## 🔒 **Security Benefits**
 
-- ✅ **Credentials hidden** from client-side code
-- ✅ **Environment isolation** (dev/prod can use different credentials)
+- ✅ **Credentials not in source code**
 - ✅ **Easy credential rotation** (change in Cloudflare dashboard)
-- ✅ **No hardcoded secrets** in source code 
+- ✅ **Environment isolation** (dev/prod can use different credentials)
+- ✅ **No build-time secrets** to manage 

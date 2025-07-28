@@ -7,9 +7,8 @@
 
   console.log('🚀 iHeardAI Voice Agent Widget Loading...');
 
-  // Supabase configuration
-  const SUPABASE_URL = 'https://migtkyxdbsmtktzklouc.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZ3RreXhkYnNtdGt0emtsb3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwNjkzNzMsImV4cCI6MjA2ODY0NTM3M30.Aj3Cgqsj7zBhHwdyOnDOhVPsj23ZgF4fy83zl4rjHus';
+  // Widget configuration - no hardcoded credentials needed
+  // Credentials are handled securely by Cloudflare Pages Functions
 
   // Widget configuration with defaults
   let widgetConfig = {
@@ -123,21 +122,18 @@
     }
   }
 
-  // Fetch configuration directly from Supabase
+  // Fetch configuration from secure Cloudflare Pages API
   async function fetchConfiguration(identifier, silent = false) {
     try {
       if (!silent) {
-        console.log('🔍 Fetching configuration from Supabase for agent ID:', identifier);
+        console.log('🔍 Fetching configuration from secure API for agent ID:', identifier);
       }
       
-      // Query Supabase directly using REST API
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/VoiceAgentConfig?id=eq.${identifier}&select=*`, {
+      // Query our secure Cloudflare Pages API endpoint
+      const response = await fetch(`/api/config?agentId=${identifier}`, {
         method: 'GET',
         headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Content-Type': 'application/json'
         }
       });
       
@@ -150,20 +146,12 @@
         const data = await response.json();
         
         if (!silent) {
-          console.log('📦 Supabase Response data:', data);
+          console.log('📦 API Response data:', data);
         }
         
-        // Check if we got data and agent is active/enabled
-        if (data && data.length > 0) {
-          const config = data[0];
-          
-          // Check if agent is active and enabled
-          if (!config.isActive || !config.isEnabled) {
-            if (!silent) {
-              console.warn('⚠️ Agent is not active or enabled:', { isActive: config.isActive, isEnabled: config.isEnabled });
-            }
-            return;
-          }
+        // Check if we got data
+        if (data && data.config) {
+          const config = data.config;
           
           // Map Supabase VoiceAgentConfig fields to widget config
           widgetConfig = {
