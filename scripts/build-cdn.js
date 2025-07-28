@@ -52,7 +52,7 @@ function ensureBuildDir() {
 function buildWidget() {
   console.log('📦 Building widget for CDN...');
   
-  const sourcePath = path.join(__dirname, '..', 'src', 'widget.template.js');
+  const sourcePath = path.join(__dirname, '..', 'src', 'widget.js');
   const buildPath = ensureBuildDir();
   
   if (!fs.existsSync(sourcePath)) {
@@ -92,19 +92,10 @@ function buildWidget() {
   };
 }
 
-// Inject environment variables and minify code
+// Minify code (no environment variables needed - using secure API)
 function minifyCode(code) {
-  // Get environment variables
-  const supabaseUrl = process.env.SUPABASE_URL || 'https://migtkyxdbsmtktzklouc.supabase.co';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZ3RreXhkYnNtdGt0emtsb3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwNjkzNzMsImV4cCI6MjA2ODY0NTM3M30.Aj3Cgqsj7zBhHwdyOnDOhVPsj23ZgF4fy83zl4rjHus';
-  
-  // Replace placeholders with environment variables
-  let processedCode = code
-    .replace(/SUPABASE_URL_PLACEHOLDER/g, supabaseUrl)
-    .replace(/SUPABASE_ANON_KEY_PLACEHOLDER/g, supabaseAnonKey);
-  
-  // Minify the processed code
-  return processedCode
+  // Minify the code directly
+  return code
     // Remove single-line comments
     .replace(/\/\/.*$/gm, '')
     // Remove multi-line comments
