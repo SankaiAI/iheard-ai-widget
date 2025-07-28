@@ -1245,6 +1245,7 @@
           height: 50px !important;
           min-height: 50px !important;
           border-radius: 25px !important;
+          background: rgba(0, 0, 0, 0.6) !important;
         }
         
         .iheard-chat-messages-container {
@@ -1594,6 +1595,7 @@
     const button = widget.querySelector('.iheard-widget-button');
     const headerRect = widget.querySelector('.iheard-chat-header-rect');
     const callBtn = widget.querySelector('.iheard-call-btn');
+    const actionBtn = widget.querySelector('.iheard-action-btn');
     const input = widget.querySelector('.iheard-input');
     const chatInterface = widget.querySelector('.iheard-chat-interface');
 
@@ -1696,6 +1698,7 @@
       simulateAIResponse(message);
     }
 
+    actionBtn.addEventListener('click', sendMessage);
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         sendMessage();
