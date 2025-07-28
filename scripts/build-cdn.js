@@ -4,6 +4,26 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// Copy directory recursively
+function copyDirectory(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyDirectory(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 console.log('🚀 iHeardAI Widget CDN Build Script');
 console.log('==================================\n');
 
@@ -215,6 +235,14 @@ function main() {
     
     // Generate integration examples
     const examples = generateIntegrationExamples(manifest);
+    
+    // Copy functions directory for Cloudflare Pages
+    const functionsSrc = path.join(__dirname, '..', 'functions');
+    const functionsDest = path.join(__dirname, '..', config.buildDir, 'functions');
+    if (fs.existsSync(functionsSrc)) {
+      copyDirectory(functionsSrc, functionsDest);
+      console.log('📁 Functions directory copied for Cloudflare Pages');
+    }
     
     console.log('\n🎉 Build completed successfully!');
     console.log('=====================================');
