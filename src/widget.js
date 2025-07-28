@@ -1242,6 +1242,7 @@
           width: calc(100% - 20px) !important;
           height: 50px !important;
           min-height: 50px !important;
+          border-radius: 25px !important;
         }
         
         .iheard-chat-messages-container {
@@ -1270,7 +1271,7 @@
         }
         
         .iheard-chat-input-container {
-          border-radius: 0 !important;
+          border-radius: 0 0 25px 25px !important;
           flex-shrink: 0 !important;
           margin: 0 !important;
           padding: 15px 15px 25px 15px !important;
@@ -1369,7 +1370,7 @@
         /* Mobile safe area adjustments */
         @supports (padding: max(0px)) {
           .iheard-chat-input-container {
-            padding-bottom: max(env(safe-area-inset-bottom), 25px) !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
           }
         }
       }
