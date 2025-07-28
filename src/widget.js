@@ -368,25 +368,6 @@
         background: #ffffff;
       }
 
-      /* Override fixed height constraints on mobile */
-      @media (max-width: 480px) {
-        .iheard-chat-interface {
-          width: 100vw !important;
-          height: 100vh !important;
-          height: 100dvh !important;
-          max-height: none !important;
-          min-height: 0 !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          bottom: 0 !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-      }
 
       /* Default appearance styles */
       .iheard-chat-interface.default-appearance {
@@ -1164,14 +1145,12 @@
           left: 0 !important;
           right: 0 !important;
           bottom: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          height: 100dvh !important;
           z-index: 999999 !important;
           display: block !important;
           overflow: hidden !important;
           margin: 0 !important;
           padding: 0 !important;
+          box-sizing: border-box !important;
         }
         
         /* Keep the same background as desktop */
@@ -1187,11 +1166,11 @@
         
         .iheard-chat-content-container {
           position: absolute !important;
-          top: 10px !important;
-          left: 10px !important;
-          right: 10px !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
           bottom: 0 !important;
-          border-radius: 25px 25px 0 0 !important;
+          border-radius: 0 !important;
           display: grid !important;
           grid-template-rows: auto 1fr auto !important;
           grid-template-areas: 
@@ -1203,12 +1182,40 @@
           padding: 0 !important;
           background: rgba(0, 0, 0, 0.1) !important;
           backdrop-filter: blur(20px) !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* Override ALL desktop positioning rules that might interfere */
+        .iheard-widget-container.position-bottom-left .iheard-chat-interface,
+        .iheard-widget-container.position-top-left .iheard-chat-interface,
+        .iheard-widget-container.position-center-left .iheard-chat-interface,
+        .iheard-widget-container.position-top-right .iheard-chat-interface,
+        .iheard-widget-container.position-center-right .iheard-chat-interface,
+        .iheard-chat-interface {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: auto !important;
+          height: auto !important;
+          transform: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          max-width: none !important;
+          max-height: none !important;
+          min-width: 0 !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
         }
         
         .iheard-chat-content-container.default-appearance {
           background: rgba(0, 0, 0, 0.1) !important;
           backdrop-filter: blur(20px) !important;
         }
+        
         
         .iheard-chat-header {
           border-radius: 25px 25px 0 0 !important;
