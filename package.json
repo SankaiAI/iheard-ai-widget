@@ -1,0 +1,41 @@
+{
+  "name": "iheard-ai-widget",
+  "version": "1.0.0",
+  "description": "iHeardAI Voice Agent Widget - CDN Distribution",
+  "main": "dist/widget.min.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:cdn": "node scripts/build-cdn.js",
+    "dev": "node scripts/dev-server.js",
+    "test": "node scripts/test-widget.js",
+    "deploy": "pnpm run build:cdn && echo 'Widget built for CDN deployment'",
+    "version": "node scripts/version.js"
+  },
+  "keywords": [
+    "widget",
+    "voice-agent",
+    "ai",
+    "chat",
+    "livekit",
+    "cdn"
+  ],
+  "author": "iHeardAI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/iheard-ai-widget.git"
+  },
+  "devDependencies": {
+    "terser": "^5.24.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "scripts/"
+  ]
+} 
