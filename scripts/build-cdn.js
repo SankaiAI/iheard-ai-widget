@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { minify } = require('terser');
 
 // Copy directory recursively
 function copyDirectory(src, dest) {
@@ -49,7 +50,7 @@ function ensureBuildDir() {
 }
 
 // Read and minify widget
-function buildWidget() {
+async function buildWidget() {
   console.log('📦 Building widget for CDN...');
   
   const sourcePath = path.join(__dirname, '..', 'src', 'widget.js');
@@ -66,7 +67,7 @@ function buildWidget() {
   const hash = crypto.createHash('md5').update(source).digest('hex').substring(0, 8);
   
   // Minify the widget
-  const minified = minifyCode(source);
+  const minified = await minifyCode(source);
   
   // Write minified file
   const minifiedPath = path.join(buildPath, config.minifiedFile);
@@ -92,20 +93,38 @@ function buildWidget() {
   };
 }
 
-// Minify code (no environment variables needed - using secure API)
-function minifyCode(code) {
-  // Minify the code directly
-  return code
-    // Remove single-line comments
-    .replace(/\/\/.*$/gm, '')
-    // Remove multi-line comments
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    // Remove extra whitespace
-    .replace(/\s+/g, ' ')
-    // Remove whitespace around operators
-    .replace(/\s*([{}();,=+\-*/<>!&|])\s*/g, '$1')
-    // Remove leading/trailing whitespace
-    .trim();
+// Minify code using Terser for proper JavaScript minification
+async function minifyCode(code) {
+  try {
+    const result = await minify(code, {
+      compress: {
+        drop_console: false, // Keep console logs for debugging
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.warn', 'console.error']
+      },
+      mangle: {
+        reserved: ['iHeardAIWidget'] // Don't mangle the global function name
+      },
+      format: {
+        comments: false
+      }
+    });
+    
+    if (result.error) {
+      console.error('❌ Minification error:', result.error);
+      throw result.error;
+    }
+    
+    return result.code;
+  } catch (error) {
+    console.error('❌ Minification failed:', error);
+    // Fallback to basic minification
+    return code
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 }
 
 // Generate version info
@@ -211,12 +230,12 @@ function generateIntegrationExamples(manifest) {
 }
 
 // Main build process
-function main() {
+async function main() {
   try {
     console.log('🔨 Starting widget build process...\n');
     
     // Build widget
-    const buildInfo = buildWidget();
+    const buildInfo = await buildWidget();
     
     // Generate version info
     const versionInfo = generateVersionInfo(buildInfo);
