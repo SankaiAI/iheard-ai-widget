@@ -130,7 +130,7 @@
       }
       
       // Query our secure Cloudflare Pages API endpoint
-      const response = await fetch(`/api/config?agentId=${identifier}`, {
+      const response = await fetch(`https://iheard-ai-widget.pages.dev/api/config?agentId=${identifier}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
