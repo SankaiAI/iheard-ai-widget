@@ -28,6 +28,9 @@ jobs:
         run: pnpm install
         
       - name: Build widget
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: pnpm run build:cdn
         
       - name: Upload build artifacts
@@ -62,6 +65,9 @@ jobs:
         run: pnpm install
         
       - name: Build widget
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: pnpm run build:cdn
         
       - name: Deploy to Cloudflare Pages
@@ -100,6 +106,9 @@ jobs:
         run: pnpm install
         
       - name: Build widget
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: pnpm run build:cdn
         
       - name: Deploy to Cloudflare R2
