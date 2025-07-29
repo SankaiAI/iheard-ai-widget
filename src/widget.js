@@ -326,12 +326,15 @@
       console.log('⏳ Waiting for LiveKit client to load...');
       await waitForLiveKit();
 
-      // Determine server URL based on environment (reuse isLocalTesting from above)
-      const serverUrl = isLocalTesting 
+      // Always use Railway production server for CDN widget
+      // Only use localhost if explicitly loading from a local file
+      const isActuallyLocal = window.location.protocol === 'file:' || 
+                             (window.location.hostname === 'localhost' && window.location.pathname.includes('/test-local'));
+      const serverUrl = isActuallyLocal
         ? 'http://localhost:8000' 
         : 'https://iheard-ai-voice-agent-server-production.up.railway.app';
       
-      console.log('🌐 Using server URL:', serverUrl, '(local testing:', isLocalTesting, ')');
+      console.log('🌐 Using server URL:', serverUrl, '(actually local:', isActuallyLocal, ')');
       
       // Get LiveKit token from voice agent server
       const tokenResponse = await fetch(`${serverUrl}/api/livekit/token`, {
