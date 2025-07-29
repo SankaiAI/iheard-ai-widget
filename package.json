@@ -25,6 +25,9 @@
     "type": "git",
     "url": "https://github.com/your-username/iheard-ai-widget.git"
   },
+  "dependencies": {
+    "livekit-client": "^2.0.0"
+  },
   "devDependencies": {
     "terser": "^5.24.0",
     "express": "^4.18.2",

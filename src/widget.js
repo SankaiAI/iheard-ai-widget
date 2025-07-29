@@ -7,6 +7,48 @@
 
   console.log('🚀 iHeardAI Voice Agent Widget Loading...');
 
+  // Load LiveKit client if not already loaded
+  let livekitLoaded = false;
+  
+  function waitForLiveKit() {
+    return new Promise((resolve, reject) => {
+      if (typeof window.LiveKit !== 'undefined') {
+        livekitLoaded = true;
+        resolve();
+        return;
+      }
+      
+      const checkInterval = setInterval(() => {
+        if (typeof window.LiveKit !== 'undefined') {
+          clearInterval(checkInterval);
+          livekitLoaded = true;
+          console.log('✅ LiveKit client loaded and ready');
+          resolve();
+        }
+      }, 100);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        reject(new Error('LiveKit client failed to load within timeout'));
+      }, 10000);
+    });
+  }
+  
+  if (typeof window.LiveKit === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js';
+    script.onload = () => {
+      console.log('✅ LiveKit client script loaded');
+    };
+    script.onerror = () => {
+      console.error('❌ Failed to load LiveKit client script');
+    };
+    document.head.appendChild(script);
+  } else {
+    livekitLoaded = true;
+  }
+
   // Widget configuration - no hardcoded credentials needed
   // Credentials are handled securely by Cloudflare Pages Functions
 
@@ -53,6 +95,13 @@
   let currentAgentId = null;
   let configPollingInterval = null;
 
+  // LiveKit voice state
+  let livekitRoom = null;
+  let livekitParticipant = null;
+  let isVoiceConnected = false;
+  let voiceSessionId = null;
+  let currentApiKey = null;
+
   // Get configuration from URL parameters or data attributes
   function getInitialConfig() {
     // Try to get parameters from the script tag that loaded this widget
@@ -79,12 +128,17 @@
     console.log('🔍 URL params:', { apiKey, agentId });
     console.log('🔍 Current URL:', window.location.href);
     
-    // Store agent ID for polling
+    // Store agent ID and API key for polling
     currentAgentId = agentId;
+    currentApiKey = apiKey || agentId; // Store the API key for LiveKit connections
     console.log('🔍 Stored currentAgentId:', currentAgentId);
+    console.log('🔍 Stored currentApiKey:', currentApiKey ? 'Present' : 'Missing');
     
-    // If we have an API key, fetch configuration from API
-    if (apiKey || agentId) {
+    // For local testing, skip configuration fetching and use defaults
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('🔧 Local testing mode - using default configuration');
+      initializeWidget();
+    } else if (apiKey || agentId) {
       console.log('🔍 Calling fetchConfiguration with:', apiKey || agentId);
       fetchConfiguration(apiKey || agentId);
       // Start polling for configuration updates
@@ -241,6 +295,260 @@
       if (!isInitialized) {
         initializeWidget();
       }
+    }
+  }
+
+  // LiveKit Voice Integration Functions
+  async function connectToLiveKit() {
+    try {
+      console.log('🎤 Connecting to LiveKit voice server...');
+      
+      if (!currentApiKey) {
+        throw new Error('No API key available for voice connection');
+      }
+
+      // Wait for LiveKit client to be loaded
+      console.log('⏳ Waiting for LiveKit client to load...');
+      await waitForLiveKit();
+
+      // Get LiveKit token from voice agent server
+      const tokenResponse = await fetch('http://localhost:8000/api/livekit/token', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          api_key: currentApiKey || 'ihd_test-key', // Use valid API key format
+          room_name: `voice_room_${currentAgentId || 'default'}`,
+          participant_name: 'User'
+        })
+      });
+      
+      if (!tokenResponse.ok) {
+        throw new Error(`Token request failed: ${tokenResponse.status}`);
+      }
+      
+      const tokenData = await tokenResponse.json();
+      console.log('🎟️ Received LiveKit token');
+      
+      // Connect to LiveKit room
+      const { Room, RoomEvent } = window.LiveKit;
+      const room = new Room();
+      
+      await room.connect(tokenData.server_url, tokenData.token);
+      console.log('🎤 Connected to LiveKit room:', tokenData.room_name);
+      
+      livekitRoom = room;
+      livekitParticipant = room.localParticipant;
+      
+      // Set up event listeners
+      setupLiveKitEventListeners(room);
+      
+      // Enable microphone
+      await room.localParticipant.enableCameraAndMicrophone(false, true);
+      console.log('🎤 Microphone enabled');
+      
+      return room;
+      
+    } catch (error) {
+      console.error('❌ LiveKit connection failed:', error);
+      throw new Error(`LiveKit connection failed: ${error.message}`);
+    }
+  }
+
+  async function disconnectFromLiveKit() {
+    try {
+      console.log('🔇 Disconnecting from LiveKit...');
+      
+      if (livekitRoom) {
+        await livekitRoom.disconnect();
+        livekitRoom = null;
+        livekitParticipant = null;
+        console.log('🔇 Disconnected from LiveKit room');
+      }
+      
+    } catch (error) {
+      console.error('❌ LiveKit disconnection failed:', error);
+    }
+  }
+
+  function setupLiveKitEventListeners(room) {
+    const { RoomEvent } = window.LiveKit;
+    
+    // Handle participant connected
+    room.on(RoomEvent.ParticipantConnected, (participant) => {
+      console.log('👤 Agent connected:', participant.identity);
+      addAgentMessage('Voice connection established. I can hear you now!');
+      updateCallButtonState('connected');
+    });
+    
+    // Handle participant disconnected
+    room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+      console.log('👤 Agent disconnected:', participant.identity);
+      addAgentMessage('Voice connection ended.');
+      updateCallButtonState('disconnected');
+    });
+    
+    // Handle data messages
+    room.on(RoomEvent.DataReceived, (payload, participant) => {
+      if (participant && participant.identity.includes('agent')) {
+        try {
+          const message = new TextDecoder().decode(payload);
+          addAgentMessage(message);
+        } catch (error) {
+          console.error('❌ Failed to decode data message:', error);
+        }
+      }
+    });
+    
+    // Handle connection state changes
+    room.on(RoomEvent.ConnectionStateChanged, (state) => {
+      console.log('🔗 Connection state changed:', state);
+      updateCallButtonState(state === 'connected' ? 'connected' : 'connecting');
+    });
+    
+    // Handle audio levels for visual feedback
+    room.on(RoomEvent.AudioPlaybackStatusChanged, (participant, playing) => {
+      updateWaveAnimation(playing);
+    });
+
+    // Handle room disconnected
+    room.on(RoomEvent.Disconnected, () => {
+      console.log('🔇 Room disconnected');
+      updateCallButtonState('disconnected');
+      isVoiceConnected = false;
+    });
+  }
+
+  function updateCallButtonState(state) {
+    const callBtn = document.querySelector('.iheard-call-btn');
+    const statusIndicator = document.querySelector('.iheard-status-indicator');
+    const statusText = document.querySelector('.iheard-status-text');
+    
+    if (!callBtn) return;
+    
+    switch (state) {
+      case 'connecting':
+        callBtn.style.background = 'rgba(255, 165, 0, 0.9)';
+        callBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          Connecting...
+        `;
+        if (statusIndicator) statusIndicator.className = 'iheard-status-indicator connecting';
+        if (statusText) statusText.textContent = 'Connecting...';
+        break;
+        
+      case 'connected':
+        callBtn.style.background = 'rgba(239, 68, 68, 0.9)';
+        callBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          End Call
+        `;
+        if (statusIndicator) statusIndicator.className = 'iheard-status-indicator connected';
+        if (statusText) statusText.textContent = 'Connected';
+        break;
+        
+      case 'disconnected':
+      default:
+        callBtn.style.background = 'rgba(74, 144, 226, 0.9)';
+        callBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          Call
+        `;
+        if (statusIndicator) statusIndicator.className = 'iheard-status-indicator';
+        if (statusText) statusText.textContent = '';
+        break;
+    }
+  }
+
+  function updateWaveAnimation(isPlaying) {
+    const inputWrapper = document.querySelector('.iheard-chat-input');
+    
+    if (isVoiceConnected && isPlaying) {
+      // Show wave animation when AI is speaking
+      inputWrapper.innerHTML = `
+        <div class="iheard-wave-container">
+          <div class="iheard-wave-text">AI is speaking...</div>
+          <div class="iheard-wave-animation">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+        </div>
+      `;
+    } else if (isVoiceConnected) {
+      // Show listening state when connected but AI not speaking
+      inputWrapper.innerHTML = `
+        <div class="iheard-wave-container">
+          <div class="iheard-wave-text">I'm listening...</div>
+          <div class="iheard-wave-animation static">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  async function handleCallButtonClick() {
+    try {
+      if (isVoiceConnected && livekitRoom) {
+        // End the call
+        console.log('🔇 Ending voice call...');
+        await disconnectFromLiveKit();
+        isVoiceConnected = false;
+        updateCallButtonState('disconnected');
+        
+        // Restore normal input
+        const inputWrapper = document.querySelector('.iheard-chat-input');
+        const input = document.querySelector('.iheard-input');
+        const actionBtn = document.querySelector('.iheard-action-btn');
+        
+        if (inputWrapper && input && actionBtn) {
+          inputWrapper.innerHTML = '';
+          inputWrapper.appendChild(input);
+          inputWrapper.appendChild(actionBtn);
+        }
+        
+        addAgentMessage('Voice call ended. You can continue with text chat.');
+        
+      } else {
+        // Start the call
+        console.log('🎤 Starting voice call...');
+        updateCallButtonState('connecting');
+        
+        await connectToLiveKit();
+        isVoiceConnected = true;
+        updateCallButtonState('connected');
+        
+        // Update input area to show voice mode
+        updateWaveAnimation(false);
+        
+        addAgentMessage('Voice call started! I can hear you now. Speak naturally.');
+      }
+      
+    } catch (error) {
+      console.error('❌ Call button action failed:', error);
+      updateCallButtonState('disconnected');
+      isVoiceConnected = false;
+      addAgentMessage(`Voice call failed: ${error.message}. Please try again.`);
     }
   }
 
@@ -701,14 +1009,12 @@
       }
 
       .iheard-message {
-        max-width: 85% !important;
         width: fit-content;
         overflow: visible !important;
-        display: block !important;
+        display: flex !important;
         box-sizing: border-box !important;
         margin-bottom: 16px !important;
         margin-top: 0 !important;
-        padding: 12px 16px;
         border-radius: 20px;
         font-size: 14px;
         line-height: 1.5;
@@ -716,15 +1022,13 @@
         word-break: break-word !important;
         overflow-wrap: break-word !important;
         hyphens: auto;
-        max-width: 100% !important;
         white-space: normal !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transition: all 0.2s ease;
         position: relative;
         backdrop-filter: blur(10px);
-        box-sizing: border-box !important;
-        overflow: visible !important;
         animation: messageSlideIn 0.3s ease-out;
+        max-width: 100%;
       }
 
       .iheard-message:last-child {
@@ -753,6 +1057,13 @@
         margin-right: 8px;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         position: relative;
+        padding: 12px 16px;
+        border-radius: 20px;
+        max-width: 280px;
+        min-width: 80px;
+        width: fit-content;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
 
       .iheard-message.user-message .message-content::after {
@@ -776,6 +1087,13 @@
         margin-right: auto;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         position: relative;
+        padding: 12px 16px;
+        border-radius: 20px;
+        max-width: 280px;
+        min-width: 80px;
+        width: fit-content;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
 
       .iheard-message.assistant-message .message-content::after {
@@ -837,13 +1155,16 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         position: relative;
         animation: messageSlideIn 0.3s ease-out;
-        max-width: 85% !important;
+        max-width: 280px;
+        min-width: 80px;
         width: fit-content;
         align-self: flex-start;
-        display: block !important;
-        box-sizing: border-box !important;
-        margin-bottom: 16px !important;
-        margin-top: 0 !important;
+        display: block;
+        box-sizing: border-box;
+        margin-bottom: 16px;
+        margin-top: 0;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
 
       .iheard-typing-indicator.dark-mode {
@@ -1052,6 +1373,60 @@
       .iheard-voice-btn.recording {
         background: #ef4444;
         animation: pulse 1s infinite;
+      }
+
+      /* Wave animation for voice mode */
+      .iheard-wave-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px;
+        height: 50px;
+        box-sizing: border-box;
+      }
+
+      .iheard-wave-text {
+        font-size: 14px;
+        color: white;
+        font-weight: 500;
+        opacity: 0.9;
+      }
+
+      .iheard-wave-animation {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        height: 20px;
+      }
+
+      .wave-bar {
+        width: 3px;
+        background: var(--primary-color, #ee5cee);
+        border-radius: 2px;
+        animation: waveAnimation 1.2s ease-in-out infinite;
+      }
+
+      .wave-bar:nth-child(1) { animation-delay: 0s; height: 10px; }
+      .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 15px; }
+      .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 8px; }
+      .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 18px; }
+      .wave-bar:nth-child(5) { animation-delay: 0.4s; height: 12px; }
+      .wave-bar:nth-child(6) { animation-delay: 0.5s; height: 20px; }
+      .wave-bar:nth-child(7) { animation-delay: 0.6s; height: 7px; }
+      .wave-bar:nth-child(8) { animation-delay: 0.7s; height: 14px; }
+
+      @keyframes waveAnimation {
+        0%, 100% { transform: scaleY(0.5); opacity: 0.7; }
+        50% { transform: scaleY(1.5); opacity: 1; }
+      }
+
+      .iheard-wave-animation.static .wave-bar {
+        animation: none;
+        transform: scaleY(0.3);
+        opacity: 0.5;
       }
 
 
@@ -1705,7 +2080,14 @@
       }
     });
 
-
+    // Call button event listener
+    if (callBtn) {
+      callBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCallButtonClick();
+      });
+    }
   }
 
   // Add user message
