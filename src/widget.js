@@ -323,7 +323,7 @@
       await waitForLiveKit();
 
       // Get LiveKit token from voice agent server
-      const tokenResponse = await fetch('http://localhost:8000/api/livekit/token', {
+      const tokenResponse = await fetch('https://iheard-ai-voice-agent-server-production.up.railway.app/api/livekit/token', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
@@ -622,8 +622,10 @@
         isVoiceConnected = true;
         updateCallButtonState('connected');
         
-        // Update input area to show voice mode
-        updateWaveAnimation(false);
+        // Update input area to show voice mode - call after isVoiceConnected is set
+        setTimeout(() => {
+          updateWaveAnimation(false);
+        }, 100);
         
         addAgentMessage('Voice call started! I can hear you now. Speak naturally.');
       }
