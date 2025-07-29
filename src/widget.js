@@ -701,21 +701,27 @@
       }
 
       .iheard-message {
-        width: 100%;
+        max-width: 85% !important;
+        width: fit-content;
         overflow: visible !important;
-        display: flex !important;
+        display: block !important;
         box-sizing: border-box !important;
         margin-bottom: 16px !important;
         margin-top: 0 !important;
+        padding: 12px 16px;
+        border-radius: 20px;
         font-size: 14px;
         line-height: 1.5;
         word-wrap: break-word !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
         hyphens: auto;
+        max-width: 100% !important;
         white-space: normal !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transition: all 0.2s ease;
         position: relative;
+        backdrop-filter: blur(10px);
         box-sizing: border-box !important;
         overflow: visible !important;
         animation: messageSlideIn 0.3s ease-out;
@@ -725,38 +731,28 @@
         margin-bottom: 8px !important;
       }
 
-              .iheard-message.user-message {
-          justify-content: flex-end;
-          margin-bottom: 12px !important;
-          align-items: flex-end;
-        }
+      .iheard-message.user-message {
+        align-self: flex-end;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px !important;
+      }
 
-        .iheard-message.assistant-message {
-          justify-content: flex-start;
-          margin-bottom: 12px !important;
-          align-items: flex-start;
-        }
-
-      .iheard-message .message-content {
-        max-width: 75%;
-        width: fit-content;
-        padding: 12px 16px;
-        border-radius: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
-        word-wrap: break-word;
-        word-break: break-word;
-        overflow-wrap: break-word;
-        position: relative;
+      .iheard-message.assistant-message {
+        align-self: flex-start;
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 12px !important;
       }
 
       .iheard-message.user-message .message-content {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-bottom-right-radius: 8px;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         margin-left: auto;
-        margin-right: 0;
+        margin-right: 8px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        position: relative;
       }
 
       .iheard-message.user-message .message-content::after {
@@ -776,9 +772,10 @@
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         color: #2c3e50;
         border-bottom-left-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        margin-left: 0;
+        margin-left: 8px;
         margin-right: auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        position: relative;
       }
 
       .iheard-message.assistant-message .message-content::after {
@@ -797,16 +794,12 @@
       .iheard-message.user-message .message-content.dark-mode {
         background: linear-gradient(135deg, #4a90e2 0%, #6c5ce7 100%);
         box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
-        margin-left: auto;
-        margin-right: 0;
       }
 
       .iheard-message.assistant-message .message-content.dark-mode {
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
         color: white;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        margin-left: 0;
-        margin-right: auto;
       }
 
       .iheard-message.assistant-message .message-content.dark-mode::after {
@@ -834,34 +827,32 @@
       }
 
       .iheard-typing-indicator {
-        display: flex;
-        justify-content: flex-start;
-        width: 100%;
-        margin-bottom: 16px !important;
-        margin-top: 0 !important;
-        animation: messageSlideIn 0.3s ease-out;
-      }
-
-      .iheard-typing-indicator .typing-content {
-        max-width: 75%;
-        width: fit-content;
         padding: 12px 16px;
         border-radius: 20px;
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         color: #2c3e50;
         border-bottom-left-radius: 8px;
+        margin-left: 8px;
+        margin-right: auto;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         position: relative;
-        box-sizing: border-box;
+        animation: messageSlideIn 0.3s ease-out;
+        max-width: 85% !important;
+        width: fit-content;
+        align-self: flex-start;
+        display: block !important;
+        box-sizing: border-box !important;
+        margin-bottom: 16px !important;
+        margin-top: 0 !important;
       }
 
-      .iheard-typing-indicator .typing-content.dark-mode {
+      .iheard-typing-indicator.dark-mode {
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
         color: white;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       }
 
-      .iheard-typing-indicator .typing-content::after {
+      .iheard-typing-indicator::after {
         content: '';
         position: absolute;
         bottom: 0;
@@ -874,7 +865,7 @@
         border-left: 0;
       }
 
-      .iheard-typing-indicator .typing-content.dark-mode::after {
+      .iheard-typing-indicator.dark-mode::after {
         border-right-color: rgba(255, 255, 255, 0.08);
       }
 
@@ -1063,74 +1054,7 @@
         animation: pulse 1s infinite;
       }
 
-      /* Wave animation styles */
-      .iheard-wave-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 36px;
-        width: 100%;
-        gap: 8px;
-      }
 
-      .iheard-wave-text {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.8);
-        font-weight: 500;
-        text-align: center;
-        white-space: nowrap;
-      }
-
-      .iheard-wave-animation {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        height: 16px;
-      }
-
-      .wave-bar {
-        width: 2px;
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: 1px;
-        animation: waveAnimation 1.2s ease-in-out infinite;
-        transform-origin: center;
-      }
-
-      .wave-bar:nth-child(1) { animation-delay: 0s; height: 4px; }
-      .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 8px; }
-      .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 12px; }
-      .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 16px; }
-      .wave-bar:nth-child(5) { animation-delay: 0.4s; height: 12px; }
-      .wave-bar:nth-child(6) { animation-delay: 0.5s; height: 8px; }
-      .wave-bar:nth-child(7) { animation-delay: 0.6s; height: 14px; }
-      .wave-bar:nth-child(8) { animation-delay: 0.7s; height: 10px; }
-      .wave-bar:nth-child(9) { animation-delay: 0.8s; height: 6px; }
-      .wave-bar:nth-child(10) { animation-delay: 0.9s; height: 12px; }
-      .wave-bar:nth-child(11) { animation-delay: 1.0s; height: 8px; }
-      .wave-bar:nth-child(12) { animation-delay: 1.1s; height: 4px; }
-
-      @keyframes waveAnimation {
-        0%, 100% {
-          transform: scaleY(0.5);
-          opacity: 0.6;
-        }
-        50% {
-          transform: scaleY(1.2);
-          opacity: 1;
-        }
-      }
-
-      .iheard-chat-input.wave-mode {
-        background: transparent !important;
-        backdrop-filter: none;
-        border: none;
-      }
-
-      .iheard-chat-input.wave-mode.default-appearance {
-        background: transparent !important;
-      }
 
       /* Welcome message styles */
       .iheard-welcome-message {
@@ -1556,14 +1480,10 @@
           <h3>${widgetConfig.agentName}</h3>
         </div>
         <div class="iheard-call-section">
-          <div class="iheard-call-status" style="display: none;">
-            <div class="iheard-status-indicator connecting"></div>
-            <span class="iheard-status-text">Connecting</span>
-          </div>
           <button class="iheard-call-btn" title="Voice call">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>  
+            </svg>
             Call
           </button>
         </div>
@@ -1766,19 +1686,6 @@
       }
     });
 
-    // Handle call button click
-    callBtn.addEventListener('click', () => {
-      if (isConnecting) {
-        // If already connecting, disconnect
-        setConnectingState(false);
-      } else {
-        // Start connecting
-        setConnectingState(true);
-        // Note: Connection will persist until manually disconnected
-        // In real implementation, this would connect to LiveKit voice agent server
-      }
-    });
-
     // Send message
     function sendMessage() {
       const message = input.value.trim();
@@ -1801,105 +1708,6 @@
 
   }
 
-  // Set connecting state
-  function setConnectingState(connecting) {
-    isConnecting = connecting;
-    
-    const widget = document.getElementById('iheard-ai-widget');
-    if (!widget) return;
-    
-    const callStatus = widget.querySelector('.iheard-call-status');
-    const callBtn = widget.querySelector('.iheard-call-btn');
-    const inputContainer = widget.querySelector('.iheard-chat-input-container');
-    const inputWrapper = widget.querySelector('.iheard-chat-input');
-    
-    if (connecting) {
-      // Show connecting status
-      if (callStatus) callStatus.style.display = 'flex';
-      if (callBtn) {
-        callBtn.style.opacity = '1';
-        callBtn.style.background = 'rgba(239, 68, 68, 0.9)'; // Red background for end call
-        callBtn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-          End
-        `;
-      }
-      
-      // Replace input with wave animation
-      if (inputWrapper) {
-        inputWrapper.innerHTML = `
-          <div class="iheard-wave-container">
-            <div class="iheard-wave-text">I'm hearing</div>
-            <div class="iheard-wave-animation">
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-              <div class="wave-bar"></div>
-            </div>
-          </div>
-        `;
-        inputWrapper.classList.add('wave-mode');
-      }
-    } else {
-      // Hide connecting status
-      if (callStatus) callStatus.style.display = 'none';
-      if (callBtn) {
-        callBtn.style.opacity = '1';
-        callBtn.style.background = 'rgba(74, 144, 226, 0.9)'; // Restore blue background
-        callBtn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-          Call
-        `;
-      }
-      
-      // Restore input
-      if (inputWrapper) {
-        inputWrapper.innerHTML = `
-          <input type="text" class="iheard-input" placeholder="${widgetConfig.inputPlaceholder}">
-          <button class="iheard-action-btn" title="Action">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
-            </svg>
-          </button>
-        `;
-        inputWrapper.classList.remove('wave-mode');
-        
-        // Re-add event listeners
-        const newInput = inputWrapper.querySelector('.iheard-input');
-        const newActionBtn = inputWrapper.querySelector('.iheard-action-btn');
-        
-        // Apply default appearance class if needed
-        if (widgetConfig.useDefaultAppearance && newInput) {
-          newInput.classList.add('default-appearance');
-        }
-        
-        if (newActionBtn) {
-          newActionBtn.addEventListener('click', sendMessage);
-        }
-        if (newInput) {
-          newInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-              sendMessage();
-            }
-          });
-        }
-      }
-    }
-  }
-
   // Add user message
   function addUserMessage(text) {
     const messagesContainer = document.querySelector('.iheard-chat-messages');
@@ -1908,12 +1716,6 @@
     
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    
-    // Apply dark mode class if needed
-    if (widgetConfig.useDefaultAppearance) {
-      messageContent.classList.add('dark-mode');
-    }
-    
     messageContent.textContent = text;
     
     message.appendChild(messageContent);
@@ -1929,12 +1731,6 @@
     
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    
-    // Apply dark mode class if needed
-    if (widgetConfig.useDefaultAppearance) {
-      messageContent.classList.add('dark-mode');
-    }
-    
     messageContent.textContent = text;
     
     message.appendChild(messageContent);
@@ -1947,24 +1743,13 @@
     const messagesContainer = document.querySelector('.iheard-chat-messages');
     const indicator = document.createElement('div');
     indicator.className = 'iheard-typing-indicator';
-    
-    const typingContent = document.createElement('div');
-    typingContent.className = 'typing-content';
-    
-    // Apply dark mode class if needed
-    if (widgetConfig.useDefaultAppearance) {
-      typingContent.classList.add('dark-mode');
-    }
-    
-    typingContent.innerHTML = `
+    indicator.innerHTML = `
       <div class="iheard-loading-dots">
         <span></span>
         <span></span>
         <span></span>
       </div>
     `;
-    
-    indicator.appendChild(typingContent);
     messagesContainer.appendChild(indicator);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     return indicator;
