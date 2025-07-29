@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iHeardAI Voice Agent Widget - LOCAL Testing (uses localhost:8000)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .test-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .test-info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .test-info li {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .widget-demo {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 300px;
+            position: relative;
+        }
+        
+        .demo-label {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-panel {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .status-panel h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-dot.green { background: #28a745; }
+        .status-dot.yellow { background: #ffc107; }
+        .status-dot.red { background: #dc3545; }
+        .status-dot.gray { background: #6c757d; }
+        
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .control-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .logs {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-entry.info { color: #63b3ed; }
+        .log-entry.success { color: #68d391; }
+        .log-entry.warning { color: #fbb6ce; }
+        .log-entry.error { color: #fc8181; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h1>🎤 iHeardAI Voice Agent Widget</h1>
+            <p>LOCAL Testing Environment (uses localhost:8000 voice server)</p>
+        </div>
+        
+        <div class="test-info">
+            <h3>🧪 Test Instructions</h3>
+            <p>This page tests the integration between the iHeardAI widget and the voice agent server using LiveKit.</p>
+            <ul>
+                <li><strong>Step 1:</strong> Make sure the LOCAL voice-agent-server is running on localhost:8000</li>
+                <li><strong>Step 2:</strong> Look for the widget in the bottom-right corner</li>
+                <li><strong>Step 3:</strong> Click the widget to open the chat interface</li>
+                <li><strong>Step 4:</strong> Click the "Call" button in the pill-shaped header</li>
+                <li><strong>Step 5:</strong> Grant microphone permissions when prompted</li>
+                <li><strong>Step 6:</strong> Start speaking - the AI agent should respond via voice</li>
+            </ul>
+        </div>
+        
+        <div class="status-panel">
+            <h4>📊 System Status</h4>
+            <div class="status-item">
+                <span><span class="status-dot" id="widget-status"></span>Widget Loaded</span>
+                <span id="widget-status-text">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span><span class="status-dot" id="livekit-status"></span>LiveKit Client</span>
+                <span id="livekit-status-text">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span><span class="status-dot" id="server-status"></span>Voice Server</span>
+                <span id="server-status-text">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span><span class="status-dot" id="voice-status"></span>Voice Connection</span>
+                <span id="voice-status-text">Not Connected</span>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <button class="control-btn" onclick="testServerConnection()">Test Voice Server</button>
+            <button class="control-btn" onclick="openWidget()">Open Widget</button>
+            <button class="control-btn" onclick="closeWidget()">Close Widget</button>
+            <button class="control-btn" onclick="clearLogs()">Clear Logs</button>
+        </div>
+        
+        <div class="widget-demo">
+            <div class="demo-label">Widget Testing Area</div>
+            <p style="text-align: center; color: #666; margin-top: 40px;">
+                The widget should appear in the bottom-right corner of this page.<br>
+                Check the browser console for detailed logs.
+            </p>
+        </div>
+        
+        <div class="logs" id="logs">
+            <div class="log-entry info">[INFO] Test page loaded</div>
+            <div class="log-entry info">[INFO] Initializing widget tests...</div>
+        </div>
+    </div>
+
+    <!-- Load LiveKit client first -->
+    <script src="https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js" onload="console.log('✅ LiveKit script loaded from HTML'); console.log('Available LiveKit objects:', {LiveKit: typeof window.LiveKit, livekit: typeof window.livekit, LiveKitClient: typeof window.LiveKitClient, livekitClient: typeof window.livekitClient}); console.log('All window keys with live:', Object.keys(window).filter(k => k.toLowerCase().includes('live')));" onerror="console.error('❌ Failed to load LiveKit from HTML')"></script>
+    
+    <!-- Load the iHeardAI Widget -->
+    <script src="src/widget.js?apiKey=ihd_test-key&agentId=test-agent"></script>
+
+    <script>
+        // Test page JavaScript
+        let logCount = 0;
+        
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+            
+            // Keep only last 100 logs
+            if (++logCount > 100) {
+                logs.removeChild(logs.firstChild);
+                logCount--;
+            }
+        }
+        
+        function updateStatus(statusId, textId, status, text) {
+            const dot = document.getElementById(statusId);
+            const textEl = document.getElementById(textId);
+            
+            dot.className = `status-dot ${status}`;
+            textEl.textContent = text;
+        }
+        
+        function testServerConnection() {
+            addLog('Testing voice server connection...', 'info');
+            updateStatus('server-status', 'server-status-text', 'yellow', 'Testing...');
+            
+            fetch('http://localhost:8000/health')
+                .then(response => response.json())
+                .then(data => {
+                    addLog('Voice server is running!', 'success');
+                    updateStatus('server-status', 'server-status-text', 'green', 'Connected');
+                })
+                .catch(error => {
+                    addLog('Voice server connection failed: ' + error.message, 'error');
+                    updateStatus('server-status', 'server-status-text', 'red', 'Failed');
+                });
+        }
+        
+        function openWidget() {
+            if (window.iHeardAIWidget) {
+                window.iHeardAIWidget.open();
+                addLog('Widget opened via API', 'info');
+            } else {
+                addLog('Widget API not available', 'warning');
+            }
+        }
+        
+        function closeWidget() {
+            if (window.iHeardAIWidget) {
+                window.iHeardAIWidget.close();
+                addLog('Widget closed via API', 'info');
+            } else {
+                addLog('Widget API not available', 'warning');
+            }
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            logCount = 0;
+            addLog('Logs cleared', 'info');
+        }
+        
+        // Monitor widget status
+        function checkWidgetStatus() {
+            if (window.iHeardAIWidget) {
+                updateStatus('widget-status', 'widget-status-text', 'green', 'Loaded');
+                addLog('Widget API available', 'success');
+                
+                // Check if widget is initialized
+                if (window.iHeardAIWidget.isInitialized()) {
+                    addLog('Widget initialized successfully', 'success');
+                }
+            } else {
+                updateStatus('widget-status', 'widget-status-text', 'yellow', 'Loading...');
+            }
+        }
+        
+        // Check LiveKit status
+        function checkLiveKitStatus() {
+            if (typeof window.LiveKit !== 'undefined') {
+                updateStatus('livekit-status', 'livekit-status-text', 'green', 'Loaded');
+                addLog('LiveKit client loaded', 'success');
+            } else {
+                updateStatus('livekit-status', 'livekit-status-text', 'yellow', 'Loading...');
+            }
+        }
+        
+        // Override console methods to capture widget logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            if (args[0] && args[0].includes && (args[0].includes('iHeard') || args[0].includes('🎤') || args[0].includes('🔇'))) {
+                addLog(args.join(' '), 'info');
+            }
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            if (args[0] && args[0].includes && (args[0].includes('iHeard') || args[0].includes('LiveKit') || args[0].includes('❌'))) {
+                addLog(args.join(' '), 'error');
+            }
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            if (args[0] && args[0].includes && (args[0].includes('iHeard') || args[0].includes('⚠️'))) {
+                addLog(args.join(' '), 'warning');
+            }
+        };
+        
+        // Debug what's available on window
+        function debugWindow() {
+            const liveKitKeys = Object.keys(window).filter(k => k.toLowerCase().includes('live'));
+            addLog('LiveKit-related keys on window: ' + liveKitKeys.join(', '), 'info');
+            addLog('window.LiveKit type: ' + typeof window.LiveKit, 'info');
+            addLog('window.livekit type: ' + typeof window.livekit, 'info');
+            addLog('window.LiveKitClient type: ' + typeof window.LiveKitClient, 'info');
+        }
+        
+        // Initialize status checks
+        setInterval(checkWidgetStatus, 1000);
+        setInterval(checkLiveKitStatus, 1000);
+        setInterval(testServerConnection, 30000); // Test server every 30 seconds
+        setInterval(debugWindow, 2000); // Debug every 2 seconds
+        
+        // Initial checks
+        setTimeout(() => {
+            checkWidgetStatus();
+            checkLiveKitStatus();
+            testServerConnection();
+            debugWindow();
+        }, 1000);
+        
+        addLog('Test environment initialized', 'success');
+    </script>
+</body>
+</html>

@@ -314,7 +314,11 @@
     try {
       console.log('🎤 Connecting to LiveKit voice server...');
       
-      if (!currentApiKey) {
+      // For local testing, use a default API key if none provided
+      const isLocalTesting = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiKeyToUse = currentApiKey || (isLocalTesting ? 'ihd_local-test-key' : null);
+      
+      if (!apiKeyToUse) {
         throw new Error('No API key available for voice connection');
       }
 
@@ -322,14 +326,21 @@
       console.log('⏳ Waiting for LiveKit client to load...');
       await waitForLiveKit();
 
+      // Determine server URL based on environment (reuse isLocalTesting from above)
+      const serverUrl = isLocalTesting 
+        ? 'http://localhost:8000' 
+        : 'https://iheard-ai-voice-agent-server-production.up.railway.app';
+      
+      console.log('🌐 Using server URL:', serverUrl, '(local testing:', isLocalTesting, ')');
+      
       // Get LiveKit token from voice agent server
-      const tokenResponse = await fetch('https://iheard-ai-voice-agent-server-production.up.railway.app/api/livekit/token', {
+      const tokenResponse = await fetch(`${serverUrl}/api/livekit/token`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          api_key: currentApiKey || 'ihd_test-key', // Use valid API key format
+          api_key: apiKeyToUse,
           room_name: `voice_room_${currentAgentId || 'default'}`,
           participant_name: 'User'
         })

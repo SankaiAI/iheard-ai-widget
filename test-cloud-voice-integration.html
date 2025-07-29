@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iHeardAI Voice Agent Widget - Local Test</title>
+    <title>iHeardAI Voice Agent Widget - CLOUD Testing (uses Railway server)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
             min-height: 100vh;
             margin: 0;
         }
@@ -38,11 +38,11 @@
         }
         
         .test-info {
-            background: #f8f9fa;
+            background: #e8f4f8;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 30px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #764ba2;
         }
         
         .test-info h3 {
@@ -73,7 +73,7 @@
             position: absolute;
             top: 10px;
             left: 15px;
-            background: rgba(102, 126, 234, 0.9);
+            background: rgba(118, 75, 162, 0.9);
             color: white;
             padding: 5px 10px;
             border-radius: 15px;
@@ -127,7 +127,7 @@
         }
         
         .control-btn {
-            background: #667eea;
+            background: #764ba2;
             color: white;
             border: none;
             padding: 12px 20px;
@@ -139,7 +139,7 @@
         }
         
         .control-btn:hover {
-            background: #5a6fd8;
+            background: #5a366d;
             transform: translateY(-2px);
         }
         
@@ -175,27 +175,28 @@
 <body>
     <div class="test-container">
         <div class="header">
-            <h1>🎤 iHeardAI Voice Agent Widget</h1>
-            <p>Local Testing Environment for Voice Integration</p>
+            <h1>☁️ iHeardAI Voice Agent Widget</h1>
+            <p>CLOUD Testing Environment (uses Railway production server)</p>
         </div>
         
         <div class="test-info">
             <h3>🧪 Test Instructions</h3>
-            <p>This page tests the integration between the iHeardAI widget and the voice agent server using LiveKit.</p>
+            <p>This page tests the widget from CDN with the CLOUD voice agent server on Railway.</p>
             <ul>
-                <li><strong>Step 1:</strong> Make sure the voice-agent-server is running on localhost:8000</li>
-                <li><strong>Step 2:</strong> Look for the widget in the bottom-right corner</li>
-                <li><strong>Step 3:</strong> Click the widget to open the chat interface</li>
-                <li><strong>Step 4:</strong> Click the "Call" button in the pill-shaped header</li>
-                <li><strong>Step 5:</strong> Grant microphone permissions when prompted</li>
-                <li><strong>Step 6:</strong> Start speaking - the AI agent should respond via voice</li>
+                <li><strong>Step 1:</strong> Widget loads from Cloudflare CDN (not local file)</li>
+                <li><strong>Step 2:</strong> Voice server calls go to Railway production server</li>
+                <li><strong>Step 3:</strong> Look for the widget in the bottom-right corner</li>
+                <li><strong>Step 4:</strong> Click the widget to open the chat interface</li>
+                <li><strong>Step 5:</strong> Click the "Call" button in the pill-shaped header</li>
+                <li><strong>Step 6:</strong> Grant microphone permissions when prompted</li>
+                <li><strong>Step 7:</strong> Start speaking - the AI agent should respond via voice</li>
             </ul>
         </div>
         
         <div class="status-panel">
             <h4>📊 System Status</h4>
             <div class="status-item">
-                <span><span class="status-dot" id="widget-status"></span>Widget Loaded</span>
+                <span><span class="status-dot" id="widget-status"></span>Widget Loaded (CDN)</span>
                 <span id="widget-status-text">Checking...</span>
             </div>
             <div class="status-item">
@@ -203,7 +204,7 @@
                 <span id="livekit-status-text">Checking...</span>
             </div>
             <div class="status-item">
-                <span><span class="status-dot" id="server-status"></span>Voice Server</span>
+                <span><span class="status-dot" id="server-status"></span>Railway Voice Server</span>
                 <span id="server-status-text">Checking...</span>
             </div>
             <div class="status-item">
@@ -213,31 +214,39 @@
         </div>
         
         <div class="control-panel">
-            <button class="control-btn" onclick="testServerConnection()">Test Voice Server</button>
+            <button class="control-btn" onclick="testServerConnection()">Test Railway Server</button>
             <button class="control-btn" onclick="openWidget()">Open Widget</button>
             <button class="control-btn" onclick="closeWidget()">Close Widget</button>
             <button class="control-btn" onclick="clearLogs()">Clear Logs</button>
         </div>
         
         <div class="widget-demo">
-            <div class="demo-label">Widget Testing Area</div>
+            <div class="demo-label">CDN Widget Testing Area</div>
             <p style="text-align: center; color: #666; margin-top: 40px;">
                 The widget should appear in the bottom-right corner of this page.<br>
+                This widget is loaded from Cloudflare CDN and connects to Railway server.<br>
                 Check the browser console for detailed logs.
             </p>
         </div>
         
         <div class="logs" id="logs">
-            <div class="log-entry info">[INFO] Test page loaded</div>
-            <div class="log-entry info">[INFO] Initializing widget tests...</div>
+            <div class="log-entry info">[INFO] Cloud test page loaded</div>
+            <div class="log-entry info">[INFO] Testing CDN widget with Railway server...</div>
         </div>
     </div>
 
     <!-- Load LiveKit client first -->
     <script src="https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js" onload="console.log('✅ LiveKit script loaded from HTML'); console.log('Available LiveKit objects:', {LiveKit: typeof window.LiveKit, livekit: typeof window.livekit, LiveKitClient: typeof window.LiveKitClient, livekitClient: typeof window.livekitClient}); console.log('All window keys with live:', Object.keys(window).filter(k => k.toLowerCase().includes('live')));" onerror="console.error('❌ Failed to load LiveKit from HTML')"></script>
     
-    <!-- Load the iHeardAI Widget -->
-    <script src="src/widget.js?apiKey=ihd_test-key&agentId=test-agent"></script>
+    <!-- Load the iHeardAI Widget from CDN -->
+    <script src="https://iheard-ai-widget.pages.dev/widget.js?apiKey=ihd_test-key&agentId=test-agent" 
+            onerror="console.error('❌ Failed to load widget from CDN:', this.src); 
+                     console.log('🔄 Trying alternative path...'); 
+                     const altScript = document.createElement('script'); 
+                     altScript.src = 'https://iheard-ai-widget.pages.dev/src/widget.js?apiKey=ihd_test-key&agentId=test-agent'; 
+                     altScript.onerror = () => console.error('❌ Alternative path also failed'); 
+                     document.head.appendChild(altScript);"
+            onload="console.log('✅ Widget loaded from CDN:', this.src)"></script>
 
     <script>
         // Test page JavaScript
@@ -268,17 +277,17 @@
         }
         
         function testServerConnection() {
-            addLog('Testing voice server connection...', 'info');
+            addLog('Testing Railway voice server connection...', 'info');
             updateStatus('server-status', 'server-status-text', 'yellow', 'Testing...');
             
-            fetch('http://localhost:8000/health')
+            fetch('https://iheard-ai-voice-agent-server-production.up.railway.app/health')
                 .then(response => response.json())
                 .then(data => {
-                    addLog('Voice server is running!', 'success');
+                    addLog('Railway voice server is running!', 'success');
                     updateStatus('server-status', 'server-status-text', 'green', 'Connected');
                 })
                 .catch(error => {
-                    addLog('Voice server connection failed: ' + error.message, 'error');
+                    addLog('Railway voice server connection failed: ' + error.message, 'error');
                     updateStatus('server-status', 'server-status-text', 'red', 'Failed');
                 });
         }
@@ -310,15 +319,15 @@
         // Monitor widget status
         function checkWidgetStatus() {
             if (window.iHeardAIWidget) {
-                updateStatus('widget-status', 'widget-status-text', 'green', 'Loaded');
-                addLog('Widget API available', 'success');
+                updateStatus('widget-status', 'widget-status-text', 'green', 'Loaded from CDN');
+                addLog('CDN Widget API available', 'success');
                 
                 // Check if widget is initialized
                 if (window.iHeardAIWidget.isInitialized()) {
-                    addLog('Widget initialized successfully', 'success');
+                    addLog('CDN Widget initialized successfully', 'success');
                 }
             } else {
-                updateStatus('widget-status', 'widget-status-text', 'yellow', 'Loading...');
+                updateStatus('widget-status', 'widget-status-text', 'yellow', 'Loading from CDN...');
             }
         }
         
@@ -381,7 +390,7 @@
             debugWindow();
         }, 1000);
         
-        addLog('Test environment initialized', 'success');
+        addLog('Cloud test environment initialized', 'success');
     </script>
 </body>
 </html>
