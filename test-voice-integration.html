@@ -234,7 +234,7 @@
     </div>
 
     <!-- Load LiveKit client first -->
-    <script src="https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js"></script>
+    <script src="https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js" onload="console.log('✅ LiveKit script loaded from HTML'); console.log('Available LiveKit objects:', {LiveKit: typeof window.LiveKit, livekit: typeof window.livekit, LiveKitClient: typeof window.LiveKitClient, livekitClient: typeof window.livekitClient}); console.log('All window keys with live:', Object.keys(window).filter(k => k.toLowerCase().includes('live')));" onerror="console.error('❌ Failed to load LiveKit from HTML')"></script>
     
     <!-- Load the iHeardAI Widget -->
     <script src="src/widget.js?apiKey=ihd_test-key&agentId=test-agent"></script>
@@ -358,16 +358,27 @@
             }
         };
         
+        // Debug what's available on window
+        function debugWindow() {
+            const liveKitKeys = Object.keys(window).filter(k => k.toLowerCase().includes('live'));
+            addLog('LiveKit-related keys on window: ' + liveKitKeys.join(', '), 'info');
+            addLog('window.LiveKit type: ' + typeof window.LiveKit, 'info');
+            addLog('window.livekit type: ' + typeof window.livekit, 'info');
+            addLog('window.LiveKitClient type: ' + typeof window.LiveKitClient, 'info');
+        }
+        
         // Initialize status checks
         setInterval(checkWidgetStatus, 1000);
         setInterval(checkLiveKitStatus, 1000);
         setInterval(testServerConnection, 30000); // Test server every 30 seconds
+        setInterval(debugWindow, 2000); // Debug every 2 seconds
         
         // Initial checks
         setTimeout(() => {
             checkWidgetStatus();
             checkLiveKitStatus();
             testServerConnection();
+            debugWindow();
         }, 1000);
         
         addLog('Test environment initialized', 'success');

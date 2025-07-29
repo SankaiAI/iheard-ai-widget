@@ -12,15 +12,25 @@
   
   function waitForLiveKit() {
     return new Promise((resolve, reject) => {
-      if (typeof window.LiveKit !== 'undefined') {
+      // Check multiple possible global names for LiveKit
+      function getLiveKit() {
+        return window.LiveKit || window.livekit || window.LiveKitClient || window.livekitClient || window.LivekitClient;
+      }
+      
+      if (getLiveKit()) {
+        const livekit = getLiveKit();
+        window.LiveKit = livekit; // Normalize to window.LiveKit
         livekitLoaded = true;
+        console.log('✅ LiveKit client found and ready');
         resolve();
         return;
       }
       
       const checkInterval = setInterval(() => {
-        if (typeof window.LiveKit !== 'undefined') {
+        const livekit = getLiveKit();
+        if (livekit) {
           clearInterval(checkInterval);
+          window.LiveKit = livekit; // Normalize to window.LiveKit
           livekitLoaded = true;
           console.log('✅ LiveKit client loaded and ready');
           resolve();
@@ -30,6 +40,7 @@
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
+        console.error('❌ Available window objects:', Object.keys(window).filter(k => k.toLowerCase().includes('live')));
         reject(new Error('LiveKit client failed to load within timeout'));
       }, 10000);
     });
@@ -344,9 +355,28 @@
       // Set up event listeners
       setupLiveKitEventListeners(room);
       
-      // Enable microphone
-      await room.localParticipant.enableCameraAndMicrophone(false, true);
-      console.log('🎤 Microphone enabled');
+      // Enable microphone with proper error handling
+      try {
+        console.log('🎤 Requesting microphone access...');
+        await room.localParticipant.enableCameraAndMicrophone(false, true);
+        console.log('✅ Microphone enabled successfully');
+      } catch (micError) {
+        console.warn('⚠️ Microphone access failed, trying alternative approach:', micError.message);
+        try {
+          // Try to get microphone permissions first
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('✅ Got microphone permissions directly');
+          // Stop the stream and let LiveKit handle it
+          stream.getTracks().forEach(track => track.stop());
+          // Try again with LiveKit
+          await room.localParticipant.enableCameraAndMicrophone(false, true);
+          console.log('✅ Microphone enabled on second attempt');
+        } catch (fallbackError) {
+          console.warn('⚠️ Could not access microphone:', fallbackError.message);
+          console.log('📝 Voice call will work in listen-only mode');
+          // Continue without microphone - user can still hear the agent
+        }
+      }
       
       return room;
       
@@ -472,6 +502,7 @@
     
     if (isVoiceConnected && isPlaying) {
       // Show wave animation when AI is speaking
+      inputWrapper.classList.add('showing-waves');
       inputWrapper.innerHTML = `
         <div class="iheard-wave-container">
           <div class="iheard-wave-text">AI is speaking...</div>
@@ -489,6 +520,7 @@
       `;
     } else if (isVoiceConnected) {
       // Show listening state when connected but AI not speaking
+      inputWrapper.classList.add('showing-waves');
       inputWrapper.innerHTML = `
         <div class="iheard-wave-container">
           <div class="iheard-wave-text">I'm listening...</div>
@@ -507,6 +539,28 @@
     }
   }
 
+  function setupInputEventListeners(input, actionBtn) {
+    // Send message function
+    function sendMessage() {
+      const message = input.value.trim();
+      if (!message || isConnecting) return;
+
+      addUserMessage(message);
+      input.value = '';
+      
+      // Simulate AI response (replace with real API call)
+      simulateAIResponse(message);
+    }
+
+    // Add event listeners
+    actionBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  }
+
   async function handleCallButtonClick() {
     try {
       if (isVoiceConnected && livekitRoom) {
@@ -516,15 +570,45 @@
         isVoiceConnected = false;
         updateCallButtonState('disconnected');
         
-        // Restore normal input
+        // Restore normal input with animation
         const inputWrapper = document.querySelector('.iheard-chat-input');
-        const input = document.querySelector('.iheard-input');
-        const actionBtn = document.querySelector('.iheard-action-btn');
+        const waveContainer = document.querySelector('.iheard-wave-container');
         
-        if (inputWrapper && input && actionBtn) {
-          inputWrapper.innerHTML = '';
-          inputWrapper.appendChild(input);
-          inputWrapper.appendChild(actionBtn);
+        if (inputWrapper && waveContainer) {
+          // Add fade out animation to wave container
+          waveContainer.classList.add('fade-out');
+          
+          // Wait for animation to complete, then restore input
+          setTimeout(() => {
+            // Remove the showing-waves class to restore normal background
+            inputWrapper.classList.remove('showing-waves');
+            
+            // Create input elements
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'iheard-input';
+            input.placeholder = widgetConfig.inputPlaceholder;
+            
+            const actionBtn = document.createElement('button');
+            actionBtn.className = 'iheard-action-btn';
+            actionBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22,2 15,22 11,13 2,9 22,2"></polygon></svg>';
+            actionBtn.title = 'Send message';
+            
+            // Clear and add new elements with fade in animation
+            inputWrapper.innerHTML = '';
+            inputWrapper.style.opacity = '0';
+            inputWrapper.appendChild(input);
+            inputWrapper.appendChild(actionBtn);
+            
+            // Fade in the restored input
+            setTimeout(() => {
+              inputWrapper.style.transition = 'opacity 0.3s ease-in';
+              inputWrapper.style.opacity = '1';
+              
+              // Re-attach event listeners for the new elements
+              setupInputEventListeners(input, actionBtn);
+            }, 50);
+          }, 300); // Match the fade-out animation duration
         }
         
         addAgentMessage('Voice call ended. You can continue with text chat.');
@@ -1309,6 +1393,12 @@
         box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
       }
 
+      /* Make input container transparent when showing wave animation */
+      .iheard-chat-input.showing-waves {
+        background: transparent !important;
+        backdrop-filter: none !important;
+      }
+
 
       .iheard-action-btn {
         position: absolute;
@@ -1385,13 +1475,19 @@
         padding: 16px;
         height: 50px;
         box-sizing: border-box;
+        width: 100%;
+        position: relative;
+        background: transparent;
+        animation: waveContainerFadeIn 0.4s ease-out;
       }
 
       .iheard-wave-text {
-        font-size: 14px;
+        font-size: 13px;
         color: white;
         font-weight: 500;
         opacity: 0.9;
+        text-align: center;
+        margin-bottom: 4px;
       }
 
       .iheard-wave-animation {
@@ -1404,9 +1500,10 @@
 
       .wave-bar {
         width: 3px;
-        background: var(--primary-color, #ee5cee);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 2px;
         animation: waveAnimation 1.2s ease-in-out infinite;
+        box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
       }
 
       .wave-bar:nth-child(1) { animation-delay: 0s; height: 10px; }
@@ -1419,14 +1516,49 @@
       .wave-bar:nth-child(8) { animation-delay: 0.7s; height: 14px; }
 
       @keyframes waveAnimation {
-        0%, 100% { transform: scaleY(0.5); opacity: 0.7; }
-        50% { transform: scaleY(1.5); opacity: 1; }
+        0%, 100% { 
+          transform: scaleY(0.5); 
+          opacity: 0.7;
+          filter: brightness(0.8);
+        }
+        50% { 
+          transform: scaleY(1.5); 
+          opacity: 1;
+          filter: brightness(1.2);
+        }
       }
 
       .iheard-wave-animation.static .wave-bar {
         animation: none;
-        transform: scaleY(0.3);
-        opacity: 0.5;
+        transform: scaleY(0.4);
+        opacity: 0.6;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      @keyframes waveContainerFadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes waveContainerFadeOut {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+      }
+
+      .iheard-wave-container.fade-out {
+        animation: waveContainerFadeOut 0.3s ease-in;
       }
 
 
