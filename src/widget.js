@@ -111,6 +111,8 @@
   let livekitParticipant = null;
   let isVoiceConnected = false;
   let voiceSessionId = null;
+  let voiceActivityDetector = null;
+  let isUserSpeaking = false;
   let currentApiKey = null;
 
   // Get configuration from URL parameters or data attributes
@@ -309,15 +311,293 @@
     }
   }
 
+  // Setup immediate voice activity detection for user speech
+  async function setupImmediateVoiceActivityDetection(room) {
+    try {
+      console.log('🎤 Setting up immediate voice activity detection...');
+      
+      const localParticipant = room.localParticipant;
+      const audioTracks = Array.from(localParticipant.audioTrackPublications.values());
+      
+      if (audioTracks.length === 0) {
+        console.warn('⚠️ No audio tracks found for VAD');
+        return;
+      }
+      
+      const micTrack = audioTracks[0].audioTrack;
+      if (!micTrack) {
+        console.warn('⚠️ No microphone track found');
+        return;
+      }
+      
+      // Get the MediaStreamTrack from LiveKit
+      const mediaStreamTrack = micTrack.mediaStreamTrack;
+      if (!mediaStreamTrack) {
+        console.warn('⚠️ No media stream track found');
+        return;
+      }
+      
+      // Create audio context for immediate VAD
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const mediaStream = new MediaStream([mediaStreamTrack]);
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      const analyser = audioContext.createAnalyser();
+      
+      // Optimize for immediate detection
+      analyser.fftSize = 512;  // Small for low latency
+      analyser.smoothingTimeConstant = 0.1;  // Less smoothing for responsiveness
+      analyser.minDecibels = -90;
+      analyser.maxDecibels = -10;
+      
+      source.connect(analyser);
+      
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Float32Array(bufferLength);
+      
+      // Immediate detection parameters
+      let vadState = 'silence';
+      let speechFrameCount = 0;
+      let silenceFrameCount = 0;
+      const speechThreshold = 0.01;  // RMS threshold for speech
+      const silenceThreshold = 0.005;  // Even lower for immediate silence detection
+      const minSpeechFrames = 2;  // ~33ms at 60fps
+      const minSilenceFrames = 2;  // ~33ms for immediate stop
+      
+      let isCurrentlySpeaking = false;
+      
+      function processVADFrame() {
+        analyser.getFloatTimeDomainData(dataArray);
+        
+        // Calculate RMS energy
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i] * dataArray[i];
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        
+        const isSpeech = rms > speechThreshold;
+        const isSilence = rms < silenceThreshold;
+        
+        // State machine for immediate detection
+        switch (vadState) {
+          case 'silence':
+            if (isSpeech) {
+              speechFrameCount = 1;
+              vadState = 'maybe_speech';
+            }
+            break;
+            
+          case 'maybe_speech':
+            if (isSpeech) {
+              speechFrameCount++;
+              if (speechFrameCount >= minSpeechFrames) {
+                vadState = 'speech';
+                if (!isCurrentlySpeaking) {
+                  isCurrentlySpeaking = true;
+                  isUserSpeaking = true;
+                  console.log('🗣️ User started speaking (immediate detection)');
+                  updateWaveAnimation();
+                }
+              }
+            } else {
+              vadState = 'silence';
+              speechFrameCount = 0;
+            }
+            break;
+            
+          case 'speech':
+            if (isSilence) {
+              silenceFrameCount = 1;
+              vadState = 'maybe_silence';
+            }
+            break;
+            
+          case 'maybe_silence':
+            if (isSilence) {
+              silenceFrameCount++;
+              if (silenceFrameCount >= minSilenceFrames) {
+                vadState = 'silence';
+                if (isCurrentlySpeaking) {
+                  isCurrentlySpeaking = false;
+                  isUserSpeaking = false;
+                  console.log('🤐 User stopped speaking (immediate detection)');
+                  updateWaveAnimation();
+                }
+                silenceFrameCount = 0;
+              }
+            } else if (rms > speechThreshold) {
+              vadState = 'speech';
+              silenceFrameCount = 0;
+            }
+            break;
+        }
+        
+        // Continue monitoring
+        requestAnimationFrame(processVADFrame);
+      }
+      
+      // Resume audio context and start processing
+      await audioContext.resume();
+      processVADFrame();
+      
+      console.log('✅ Immediate voice activity detection setup complete');
+      
+    } catch (error) {
+      console.warn('⚠️ Could not setup immediate voice activity detection:', error);
+    }
+  }
+
+  // Setup participant listeners (extracted for reuse)
+  function setupParticipantListeners(participant) {
+    const isAIAgent = participant.identity.includes('agent') || 
+                     participant.identity.includes('assistant') ||
+                     participant.identity.includes('ai') ||
+                     participant.identity.toLowerCase().includes('agent');
+    
+    console.log(`🎯 Setting up listeners for: ${participant.identity} (isAIAgent: ${isAIAgent})`);
+    
+    if (isAIAgent) {
+      // Setup individual speaking detection for AI participant
+      participant.on(window.LiveKit.ParticipantEvent.IsSpeakingChanged, (speaking) => {
+        console.log(`🎙️ AI AGENT ${participant.identity} speaking changed:`, speaking);
+        
+        if (speaking) {
+          console.log('🤖 AI agent started speaking (IsSpeakingChanged)');
+          // Immediately stop user speaking animation
+          isUserSpeaking = false;
+          updateWaveAnimation(true);
+        } else {
+          console.log('🤐 AI agent stopped speaking (IsSpeakingChanged)');
+          updateWaveAnimation(false);
+        }
+      });
+      
+      // Monitor audio level for additional confirmation
+      participant.on(window.LiveKit.ParticipantEvent.AudioLevelChanged, (level) => {
+        if (level > 0.01) { // Speaking threshold
+          console.log(`🔊 AI agent ${participant.identity} audio level: ${level}`);
+        }
+      });
+      
+      // Monitor track publications
+      participant.on(window.LiveKit.ParticipantEvent.TrackPublished, (publication) => {
+        console.log(`📡 AI agent ${participant.identity} published track:`, {
+          kind: publication.kind,
+          source: publication.source,
+          muted: publication.muted
+        });
+      });
+    }
+  }
+
+  // Setup audio level monitoring as backup detection method
+  function setupAudioLevelMonitoring(track, participant) {
+    console.log('🎵 Setting up audio level monitoring for:', participant.identity);
+    
+    try {
+      // Use LiveKit's createAudioAnalyser if available, otherwise fallback
+      if (window.LiveKit && window.LiveKit.createAudioAnalyser) {
+        const { analyser, calculateVolume, cleanup } = window.LiveKit.createAudioAnalyser(track, {
+          fftSize: 32,
+          smoothingTimeConstant: 0
+        });
+        
+        // Monitor audio levels in real-time
+        const volumeInterval = setInterval(() => {
+          const volume = calculateVolume();
+          
+          if (volume > 0.01) { // Threshold for detecting speech
+            console.log(`🔊 AI Agent ${participant.identity} audio level: ${volume}`);
+          }
+        }, 100); // Check every 100ms
+        
+        // Cleanup when track ends
+        track.on('ended', () => {
+          clearInterval(volumeInterval);
+          cleanup();
+        });
+        
+        console.log('✅ LiveKit audio level monitoring setup complete');
+      } else {
+        console.log('📝 LiveKit createAudioAnalyser not available, using basic detection');
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ Could not setup audio level monitoring:', error);
+    }
+  }
+
   // Setup LiveKit event listeners for audio playback
   function setupLiveKitEventListeners(room) {
-    const { RoomEvent, TrackKind } = window.LiveKit;
+    const { RoomEvent, TrackKind, ParticipantEvent } = window.LiveKit;
+    
+    // Primary AI speaking detection using ActiveSpeakersChanged (most reliable)
+    room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+      console.log('🔊 Active speakers changed:', {
+        count: speakers.length,
+        speakers: speakers.map(s => ({
+          identity: s.identity,
+          audioLevel: s.audioLevel,
+          isLocal: s === room.localParticipant
+        }))
+      });
+      
+      // DEBUG: Show all participants in room
+      console.log('👥 All participants in room:', {
+        local: room.localParticipant.identity,
+        remote: Array.from(room.remoteParticipants.values()).map(p => ({
+          identity: p.identity,
+          audioTracks: p.audioTrackPublications.size,
+          isConnected: p.connectionState
+        }))
+      });
+      
+      const aiSpeakers = speakers.filter(participant => 
+        participant.identity.includes('agent') || 
+        participant.identity.includes('assistant') ||
+        participant.identity.includes('ai') ||
+        participant.identity.toLowerCase().includes('agent')
+      );
+      
+      console.log('🤖 AI speakers found:', aiSpeakers.map(s => s.identity));
+      
+      if (aiSpeakers.length > 0) {
+        console.log('🤖 AI agent is actively speaking - triggering animation');
+        // Immediately stop user speaking animation
+        isUserSpeaking = false;
+        updateWaveAnimation(true); // true = AI speaking
+      } else {
+        console.log('🤐 No AI agents speaking');
+        updateWaveAnimation(false); // false = not AI speaking
+      }
+    });
+    
+    // DEBUG: Log ALL participants and their details
+    room.on(RoomEvent.ParticipantConnected, (participant) => {
+      console.log('👤 Participant connected:', {
+        identity: participant.identity,
+        sid: participant.sid,
+        metadata: participant.metadata,
+        isLocal: participant instanceof room.localParticipant.constructor
+      });
+      
+      // Check if this matches our AI agent criteria
+      const isAIAgent = participant.identity.includes('agent') || 
+                       participant.identity.includes('assistant') ||
+                       participant.identity.includes('ai') ||
+                       participant.identity.toLowerCase().includes('agent');
+      
+      console.log(`🤖 Is AI Agent: ${isAIAgent} (identity: "${participant.identity}")`);
+      
+      // Use shared function to set up listeners
+      setupParticipantListeners(participant);
+    });
     
     // Handle remote audio tracks (agent speech)
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       console.log('🎵 Track subscribed:', track.kind, 'from', participant.identity);
       
-      if (track.kind === TrackKind.Audio) {
+      if (track.kind === TrackKind.Audio && (participant.identity.includes('agent') || participant.identity.includes('assistant'))) {
         console.log('🔊 Setting up audio playback for agent speech');
         
         // Create audio element for playback
@@ -328,6 +608,9 @@
         
         // Add to DOM for playback
         document.body.appendChild(audioElement);
+        
+        // Setup additional audio level monitoring as backup
+        setupAudioLevelMonitoring(track, participant);
         
         console.log('✅ Agent audio track attached and playing');
       }
@@ -470,24 +753,52 @@
           });
           
           // Handle existing audio tracks
-          participant.audioTracks.forEach((publication) => {
-            if (publication.isSubscribed) {
-              const track = publication.track;
-              console.log('🎵 Existing audio track found:', track.kind);
-              track.attach();
-            }
-          });
+          if (participant.audioTracks && participant.audioTracks.size > 0) {
+            participant.audioTracks.forEach((publication) => {
+              if (publication.isSubscribed) {
+                const track = publication.track;
+                console.log('🎵 Existing audio track found:', track.kind);
+                track.attach();
+              }
+            });
+          }
         }
       });
       
       await room.connect(tokenData.server_url, tokenData.token);
       console.log('🎤 Connected to LiveKit room:', tokenData.room_name);
       
+      // DEBUG: Show initial room state
+      console.log('🏠 Room connection details:', {
+        roomName: room.name,
+        localParticipant: room.localParticipant.identity,
+        remoteParticipants: Array.from(room.remoteParticipants.values()).map(p => p.identity),
+        serverUrl: tokenData.server_url
+      });
+      
       livekitRoom = room;
       livekitParticipant = room.localParticipant;
       
       // Set up event listeners
       setupLiveKitEventListeners(room);
+      
+      // MANUAL CHECK: Look for existing participants that might already be in the room
+      setTimeout(() => {
+        console.log('🔍 MANUAL CHECK: Looking for existing participants...');
+        const allParticipants = Array.from(room.remoteParticipants.values());
+        console.log('📋 Found existing participants:', allParticipants.map(p => ({
+          identity: p.identity,
+          isSpeaking: p.isSpeaking,
+          audioLevel: p.audioLevel,
+          audioTracks: p.audioTrackPublications.size
+        })));
+        
+        // Manually set up event listeners for existing participants
+        allParticipants.forEach(participant => {
+          console.log(`🔧 Manually setting up listeners for: ${participant.identity}`);
+          setupParticipantListeners(participant);
+        });
+      }, 2000);
       
       // Start voice agent session
       console.log('🤖 Starting voice agent session...');
@@ -537,6 +848,53 @@
         console.warn('⚠️ Audio context test failed:', audioError.message);
       }
       
+      // Setup immediate voice activity detection after connection is established
+      setTimeout(() => {
+        setupImmediateVoiceActivityDetection(room);
+      }, 1000);
+      
+      // DEBUG: Periodic room state monitoring
+      const roomMonitor = setInterval(() => {
+        const remoteParticipants = Array.from(room.remoteParticipants.values());
+        console.log('🔍 Room state check:', {
+          roomName: room.name,
+          connectionState: room.state,
+          localParticipant: room.localParticipant.identity,
+          remoteParticipants: remoteParticipants.map(p => ({
+            identity: p.identity,
+            connectionState: p.connectionState,
+            audioTracks: p.audioTrackPublications.size,
+            isSpeaking: p.isSpeaking,
+            audioLevel: p.audioLevel
+          })),
+          totalParticipants: room.numParticipants
+        });
+        
+        // IMMEDIATELY check if any remote participant should trigger AI animation
+        remoteParticipants.forEach(participant => {
+          console.log(`🎯 Checking participant: "${participant.identity}"`, {
+            isSpeaking: participant.isSpeaking,
+            audioLevel: participant.audioLevel,
+            isAIAgent: participant.identity.includes('agent') || participant.identity.includes('assistant') || participant.identity.includes('ai')
+          });
+          
+          // Note: Manual trigger removed since event listeners are working properly
+        });
+      }, 10000); // Check every 10 seconds (reduced frequency)
+      
+      // Clear monitor when room disconnects
+      room.on(window.LiveKit.RoomEvent.Disconnected, () => {
+        clearInterval(roomMonitor);
+      });
+      
+      // Also listen for track publications (more reliable)
+      room.localParticipant.on('trackPublished', (publication) => {
+        if (publication.kind === 'audio' && publication.source === 'microphone') {
+          console.log('🎤 Microphone track published, setting up voice activity detection');
+          setTimeout(() => setupVoiceActivityDetection(room), 500);
+        }
+      });
+      
       return room;
       
     } catch (error) {
@@ -548,6 +906,9 @@
   async function disconnectFromLiveKit() {
     try {
       console.log('🔇 Disconnecting from LiveKit...');
+      
+      // Stop voice activity detection
+      stopVoiceActivityDetection();
       
       if (livekitRoom) {
         await livekitRoom.disconnect();
@@ -575,11 +936,14 @@
         console.log('🎤 Setting up audio output for agent:', participant.identity);
         
         // Subscribe to all audio tracks
-        participant.audioTracks.forEach((publication) => {
-          if (!publication.isSubscribed) {
-            publication.subscribe();
-          }
-        });
+        if (participant.audioTracks && participant.audioTracks.size > 0) {
+          participant.audioTracks.forEach((publication) => {
+            if (!publication.isSubscribed) {
+              publication.subscribe();
+            }
+          });
+        }
+        
       }
     });
     
@@ -608,18 +972,18 @@
       updateCallButtonState(state === 'connected' ? 'connected' : 'connecting');
     });
     
-    // Handle audio levels for visual feedback
-    room.on(RoomEvent.AudioPlaybackStatusChanged, (participant, playing) => {
-      console.log('🎵 Audio playback status:', participant.identity, playing);
-      updateWaveAnimation(playing);
+    // Handle audio playback status to ensure audio works properly
+    room.on(RoomEvent.AudioPlaybackStatusChanged, (canPlayback) => {
+      console.log('🔊 Audio playback status changed:', canPlayback);
       
-      // Ensure audio is playing when agent speaks
-      if (playing && participant.identity.includes('agent')) {
-        console.log('🔊 Agent is speaking - ensuring audio output');
-        // Force audio context resume if needed
-        if (window.audioContext && window.audioContext.state === 'suspended') {
-          window.audioContext.resume();
-        }
+      if (!canPlayback) {
+        console.log('⚠️ Audio playback blocked - user interaction may be required');
+        // Try to start audio when possible
+        room.startAudio().catch(e => {
+          console.log('📝 Audio start failed (user interaction required):', e.message);
+        });
+      } else {
+        console.log('✅ Audio playback enabled - AI speech detection should work');
       }
     });
 
@@ -630,26 +994,8 @@
       isVoiceConnected = false;
     });
     
-    // Handle track subscriptions
-    room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-      console.log('🎵 Track subscribed:', track.kind, 'from', participant.identity);
-      
-      if (track.kind === 'audio' && participant.identity.includes('agent')) {
-        console.log('🔊 Audio track from agent - attaching for playback');
-        track.attach();
-        
-        // Create audio element if needed
-        const audioElements = document.querySelectorAll('audio');
-        if (audioElements.length === 0) {
-          console.log('🔊 Creating audio element for agent audio');
-          const audio = document.createElement('audio');
-          audio.autoplay = true;
-          audio.controls = false;
-          audio.style.display = 'none';
-          document.body.appendChild(audio);
-        }
-      }
-    });
+    // Track subscription is handled by the main TrackSubscribed event above
+    // which calls setupAISpeakingDetection() for proper AI speaking detection
   }
 
   function updateCallButtonState(state) {
@@ -706,38 +1052,147 @@
       // Show wave animation when AI is speaking
       inputWrapper.classList.add('showing-waves');
       inputWrapper.innerHTML = `
-        <div class="iheard-wave-container">
+        <div class="iheard-wave-container ai-breathing">
+          <div class="breathing-background"></div>
           <div class="iheard-wave-text">AI is speaking...</div>
-          <div class="iheard-wave-animation">
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
+          <div class="iheard-wave-animation ai-speaking">
+            <div class="wave-ripple wave-ripple-1"></div>
+            <div class="wave-ripple wave-ripple-2"></div>
+            <div class="wave-ripple wave-ripple-3"></div>
+            <div class="wave-ripple wave-ripple-4"></div>
+          </div>
+        </div>
+      `;
+    } else if (isVoiceConnected && isUserSpeaking) {
+      // Show wave animation when user is speaking
+      inputWrapper.classList.add('showing-waves');
+      inputWrapper.innerHTML = `
+        <div class="iheard-wave-container">
+          <div class="iheard-wave-text">You are speaking...</div>
+          <div class="iheard-wave-animation user-speaking">
+            <div class="wave-ripple wave-ripple-1"></div>
+            <div class="wave-ripple wave-ripple-2"></div>
+            <div class="wave-ripple wave-ripple-3"></div>
+            <div class="wave-ripple wave-ripple-4"></div>
           </div>
         </div>
       `;
     } else if (isVoiceConnected) {
-      // Show listening state when connected but AI not speaking
+      // Show listening state when connected but nobody speaking
       inputWrapper.classList.add('showing-waves');
       inputWrapper.innerHTML = `
         <div class="iheard-wave-container">
           <div class="iheard-wave-text">I'm listening...</div>
           <div class="iheard-wave-animation static">
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
+            <div class="wave-ripple wave-ripple-static"></div>
           </div>
         </div>
       `;
+    }
+  }
+
+  async function setupVoiceActivityDetection(room) {
+    try {
+      // Don't setup if already running
+      if (voiceActivityDetector) {
+        console.log('🎤 Voice activity detection already running');
+        return;
+      }
+
+      // Get the local audio track for voice activity detection
+      const localParticipant = room.localParticipant;
+      if (!localParticipant) {
+        console.log('⚠️ No local participant available for voice activity detection');
+        return;
+      }
+
+      // Wait for microphone to be enabled
+      await localParticipant.setMicrophoneEnabled(true);
+      
+      // Wait a bit more for tracks to be available
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get the microphone track - use audioTrackPublications (correct API)
+      const audioTrackPublications = Array.from(localParticipant.audioTrackPublications.values());
+      if (audioTrackPublications.length === 0) {
+        console.log('⚠️ No audio track publications available yet, will retry voice activity detection later');
+        // Retry after a delay
+        setTimeout(() => setupVoiceActivityDetection(room), 2000);
+        return;
+      }
+      
+      const micPublication = audioTrackPublications[0];
+      const micTrack = micPublication.audioTrack;
+      if (!micTrack) {
+        console.log('⚠️ No microphone track available for voice activity detection');
+        return;
+      }
+
+      const mediaStreamTrack = micTrack.mediaStreamTrack;
+      if (!mediaStreamTrack) {
+        console.log('⚠️ No media stream track available for voice activity detection');
+        return;
+      }
+
+      // Create audio context for voice activity detection
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const stream = new MediaStream([mediaStreamTrack]);
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.3;
+      source.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      let silenceCount = 0;
+      const silenceThreshold = 30; // Silence frames before stopping animation
+      const volumeThreshold = 25; // Minimum volume to detect speech
+
+      voiceActivityDetector = setInterval(() => {
+        analyser.getByteFrequencyData(dataArray);
+        
+        // Calculate average volume
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const averageVolume = sum / bufferLength;
+        
+        const wasSpeaking = isUserSpeaking;
+        
+        if (averageVolume > volumeThreshold) {
+          isUserSpeaking = true;
+          silenceCount = 0;
+        } else {
+          silenceCount++;
+          if (silenceCount > silenceThreshold) {
+            isUserSpeaking = false;
+          }
+        }
+        
+        // Update animation if speaking state changed
+        if (wasSpeaking !== isUserSpeaking) {
+          updateWaveAnimation(false); // Update to show user speaking or listening state
+          console.log(isUserSpeaking ? '🎤 User started speaking' : '🎤 User stopped speaking');
+        }
+      }, 100); // Check every 100ms
+
+      console.log('✅ Voice activity detection enabled');
+      
+    } catch (error) {
+      console.warn('⚠️ Could not setup voice activity detection:', error);
+    }
+  }
+
+  function stopVoiceActivityDetection() {
+    if (voiceActivityDetector) {
+      clearInterval(voiceActivityDetector);
+      voiceActivityDetector = null;
+      isUserSpeaking = false;
+      console.log('🔇 Voice activity detection stopped');
     }
   }
 
@@ -1683,6 +2138,60 @@
         position: relative;
         background: transparent;
         animation: waveContainerFadeIn 0.4s ease-out;
+        overflow: hidden;
+        border-radius: 25px;
+      }
+
+      /* Breathing background effect for AI speaking */
+      .breathing-background {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 150%;
+        height: 150%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle at center, 
+          rgba(59, 130, 246, 0.4) 0%, 
+          rgba(59, 130, 246, 0.25) 30%, 
+          rgba(59, 130, 246, 0.15) 60%, 
+          rgba(59, 130, 246, 0.05) 80%,
+          transparent 100%);
+        border-radius: 50%;
+        animation: breathingGlow 3s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .iheard-wave-container.ai-breathing {
+        position: relative;
+        border: 2px solid rgba(59, 130, 246, 0.5);
+        box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+        animation: waveContainerFadeIn 0.4s ease-out, breathingBorder 3s ease-in-out infinite;
+      }
+
+      @keyframes breathingBorder {
+        0% {
+          border-color: rgba(59, 130, 246, 0.4);
+          box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        33% {
+          border-color: rgba(59, 130, 246, 0.7);
+          box-shadow: 0 0 35px rgba(59, 130, 246, 0.5);
+        }
+        66% {
+          border-color: rgba(59, 130, 246, 0.8);
+          box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+        }
+        100% {
+          border-color: rgba(59, 130, 246, 0.4);
+          box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+      }
+
+      .iheard-wave-container.ai-breathing .iheard-wave-text,
+      .iheard-wave-container.ai-breathing .iheard-wave-animation {
+        position: relative;
+        z-index: 1;
       }
 
       .iheard-wave-text {
@@ -1692,52 +2201,112 @@
         opacity: 0.9;
         text-align: center;
         margin-bottom: 4px;
+        transition: color 0.3s ease;
+      }
+
+      .iheard-wave-container:has(.user-speaking) .iheard-wave-text {
+        color: #4ade80;
+        font-weight: 600;
+      }
+
+      .iheard-wave-container:has(.ai-speaking) .iheard-wave-text {
+        color: #3b82f6;
+        font-weight: 600;
       }
 
       .iheard-wave-animation {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 3px;
+        position: relative;
+        width: 60px;
+        height: 60px;
+        margin: 0 auto;
+      }
+
+      .wave-ripple {
+        position: absolute;
+        border: 2px solid;
+        border-radius: 50%;
+        width: 20px;
         height: 20px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        border-color: rgba(102, 126, 234, 0.6);
       }
 
-      .wave-bar {
-        width: 3px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 2px;
-        animation: waveAnimation 1.2s ease-in-out infinite;
-        box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
-      }
+      .wave-ripple-1 { animation-delay: 0s; }
+      .wave-ripple-2 { animation-delay: 0.5s; }
+      .wave-ripple-3 { animation-delay: 1s; }
+      .wave-ripple-4 { animation-delay: 1.5s; }
 
-      .wave-bar:nth-child(1) { animation-delay: 0s; height: 10px; }
-      .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 15px; }
-      .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 8px; }
-      .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 18px; }
-      .wave-bar:nth-child(5) { animation-delay: 0.4s; height: 12px; }
-      .wave-bar:nth-child(6) { animation-delay: 0.5s; height: 20px; }
-      .wave-bar:nth-child(7) { animation-delay: 0.6s; height: 7px; }
-      .wave-bar:nth-child(8) { animation-delay: 0.7s; height: 14px; }
-
-      @keyframes waveAnimation {
-        0%, 100% { 
-          transform: scaleY(0.5); 
-          opacity: 0.7;
-          filter: brightness(0.8);
-        }
-        50% { 
-          transform: scaleY(1.5); 
+      @keyframes waveRipple {
+        0% {
+          transform: translate(-50%, -50%) scale(0.1);
           opacity: 1;
-          filter: brightness(1.2);
+        }
+        50% {
+          opacity: 0.8;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(2.5);
+          opacity: 0;
         }
       }
 
-      .iheard-wave-animation.static .wave-bar {
-        animation: none;
-        transform: scaleY(0.4);
-        opacity: 0.6;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      .iheard-wave-animation.static .wave-ripple-static {
+        animation: staticPulse 2s ease-in-out infinite;
+        border-color: rgba(102, 126, 234, 0.5);
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
       }
+
+      @keyframes staticPulse {
+        0%, 100% {
+          transform: translate(-50%, -50%) scale(0.8);
+          opacity: 0.5;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.2);
+          opacity: 0.8;
+        }
+      }
+
+      @keyframes breathingGlow {
+        0% {
+          transform: translate(-50%, -50%) scale(0.8);
+          opacity: 0.3;
+        }
+        33% {
+          transform: translate(-50%, -50%) scale(1.1);
+          opacity: 0.6;
+        }
+        66% {
+          transform: translate(-50%, -50%) scale(1.3);
+          opacity: 0.4;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(0.8);
+          opacity: 0.3;
+        }
+      }
+
+      /* User speaking animation - more energetic */
+      .iheard-wave-animation.user-speaking .wave-ripple {
+        animation: waveRipple 1.5s ease-out infinite;
+        border-color: rgba(74, 222, 128, 0.8);
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+      }
+
+      /* AI speaking animation - smooth and professional */
+      .iheard-wave-animation.ai-speaking .wave-ripple {
+        animation: waveRipple 2s ease-out infinite;
+        border-color: rgba(59, 130, 246, 0.8);
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+      }
+
 
       @keyframes waveContainerFadeIn {
         from {
