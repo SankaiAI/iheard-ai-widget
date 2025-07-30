@@ -188,28 +188,61 @@ pnpm run build:cdn
 pnpm run test
 ```
 
-## 🚀 Deployment
+## 🚀 Deployment & Architecture
 
-### Cloudflare Pages (Recommended)
+This widget is part of the iHeard.ai three-service architecture:
+
+### Service Architecture
+
+1. **Frontend Dashboard** (`iheardAI_Frontend` - Vercel)
+   - User management and agent configuration
+   - Generates integration code snippets with `agentId` and `apiKey`
+   - URL: `https://www.iheard.ai`
+
+2. **Widget CDN** (This repo - CloudFlare Pages)
+   - Serves `widget.js` from `https://iheard-ai-widget.pages.dev`
+   - Provides `/api/config` endpoint for agent configuration
+   - CORS configured for all customer domains
+   - Auto-deploys from `master` branch
+
+3. **Voice Agent Server** (`voice-agent-server` - Railway)
+   - Handles LiveKit voice connections and AI interactions
+   - URL: `https://endearing-playfulness-production.up.railway.app`
+   - CORS configured for all customer domains
+
+### Integration Workflow
+
+1. **Dashboard**: Users create agents and copy integration code
+2. **Customer Site**: Integration code loads widget with `agentId` and `apiKey`
+3. **Widget Loading**: This widget loads from CloudFlare CDN
+4. **Configuration**: Widget fetches agent config from `/api/config` endpoint
+5. **Voice Connection**: Widget connects to Railway voice server via LiveKit
+6. **Authentication**: All services use CORS wildcard for customer domains
+
+### Cloudflare Pages Deployment
 
 1. **Connect Repository**
    - Go to [Cloudflare Pages](https://dash.cloudflare.com)
    - Create new project from GitHub repository
+   - **IMPORTANT**: Deploy from `master` branch (not `main`)
 
 2. **Build Settings**
    ```yaml
-   Build command: pnpm run build:cdn
-   Build output directory: dist
+   Build command: # Leave empty for static deployment
+   Build output directory: .
    ```
 
 3. **Environment Variables**
    ```bash
    NODE_ENV=production
+   SUPABASE_URL=https://migtkyxdbsmtktzklouc.supabase.co
+   SUPABASE_ANON_KEY=eyJh...
    ```
 
-4. **Custom Domain**
-   - Set up custom domain: `cdn.iheard.ai`
-   - Configure SSL/TLS
+4. **Functions Configuration**
+   - CloudFlare Pages Functions in `/functions/api/config.js`
+   - Handles agent configuration requests with CORS
+   - Connects to Supabase to fetch agent data
 
 ### Manual Deployment
 
