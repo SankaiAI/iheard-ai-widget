@@ -688,25 +688,74 @@
     }
   }
 
+  // Mobile debugging overlay for troubleshooting
+  let mobileDebugLog = [];
+  function addMobileDebug(message) {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      mobileDebugLog.push(`${new Date().toLocaleTimeString()}: ${message}`);
+      console.log(`📱 MOBILE DEBUG: ${message}`);
+      
+      // Show debug overlay on mobile
+      let debugDiv = document.getElementById('mobile-debug-overlay');
+      if (!debugDiv) {
+        debugDiv = document.createElement('div');
+        debugDiv.id = 'mobile-debug-overlay';
+        debugDiv.style.cssText = `
+          position: fixed;
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          background: rgba(0,0,0,0.9);
+          color: white;
+          padding: 10px;
+          font-size: 12px;
+          z-index: 10000;
+          max-height: 200px;
+          overflow-y: auto;
+          border-radius: 5px;
+        `;
+        document.body.appendChild(debugDiv);
+      }
+      debugDiv.innerHTML = mobileDebugLog.slice(-10).join('<br>'); // Show last 10 logs
+    }
+  }
+
   // LiveKit Voice Integration Functions
   async function connectToLiveKit() {
     // Mobile device detection (used throughout this function)
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
+    addMobileDebug('🚀 Starting connectToLiveKit function');
+    
+    // Add timeout protection for mobile browsers
+    if (isMobile) {
+      setTimeout(() => {
+        addMobileDebug('⏰ 30 second timeout - checking if still stuck');
+        if (document.getElementById('mobile-debug-overlay')) {
+          addMobileDebug('🚨 Possible mobile browser freeze detected');
+        }
+      }, 30000);
+    }
+    
     try {
       console.log('🎤 Connecting to LiveKit voice server...');
+      addMobileDebug('🎤 Starting LiveKit connection');
       
       // For local testing, use a default API key if none provided
       const isLocalTesting = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const apiKeyToUse = currentApiKey || (isLocalTesting ? 'ihd_local-test-key' : null);
       
       if (!apiKeyToUse) {
+        addMobileDebug('❌ No API key available');
         throw new Error('No API key available for voice connection');
       }
 
       // Wait for LiveKit client to be loaded
       console.log('⏳ Waiting for LiveKit client to load...');
+      addMobileDebug('⏳ Waiting for LiveKit client');
       await waitForLiveKit();
+      addMobileDebug('✅ LiveKit client loaded');
 
       // Always use Railway production server for CDN widget
       // Only use localhost if explicitly loading from a local file
@@ -782,8 +831,10 @@
         }
       });
       
+      addMobileDebug('🔗 Attempting room connection...');
       await room.connect(tokenData.server_url, tokenData.token);
       console.log('🎤 Connected to LiveKit room:', tokenData.room_name);
+      addMobileDebug('✅ Connected to LiveKit room');
       
       // Mobile-specific debugging
       if (isMobile) {
@@ -835,6 +886,7 @@
       // Enable microphone with enhanced mobile support
       try {
         console.log('🎤 Requesting microphone access...');
+        addMobileDebug('🎤 Requesting microphone access');
         
         // For mobile: Request microphone with specific constraints
         console.log(`📱 Mobile device detected: ${isMobile}`);
@@ -851,8 +903,10 @@
           };
           
           console.log('📱 Using mobile-optimized audio constraints');
+          addMobileDebug('📱 Requesting mobile mic permissions');
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
           console.log('✅ Got mobile microphone permissions');
+          addMobileDebug('✅ Got mobile microphone permissions');
           
           // Brief delay for mobile audio initialization
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -861,8 +915,10 @@
           stream.getTracks().forEach(track => track.stop());
         }
         
+        addMobileDebug('🎤 Enabling microphone via LiveKit');
         await room.localParticipant.setMicrophoneEnabled(true);
         console.log('✅ Microphone enabled successfully');
+        addMobileDebug('✅ Microphone enabled successfully');
         
       } catch (micError) {
         console.warn('⚠️ Microphone access failed, trying fallback approach:', micError.message);
