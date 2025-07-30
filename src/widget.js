@@ -692,7 +692,12 @@
   let mobileDebugLog = [];
   function addMobileDebug(message) {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isChromeAndroid = /Chrome.*Android/i.test(navigator.userAgent);
+    
     if (isMobile) {
+      if (isChromeAndroid) {
+        message = `[CHROME] ${message}`;
+      }
       mobileDebugLog.push(`${new Date().toLocaleTimeString()}: ${message}`);
       console.log(`📱 MOBILE DEBUG: ${message}`);
       
@@ -725,6 +730,7 @@
   async function connectToLiveKit() {
     // Mobile device detection (used throughout this function)
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isChromeAndroid = /Chrome.*Android/i.test(navigator.userAgent);
     
     addMobileDebug('🚀 Starting connectToLiveKit function');
     
@@ -980,13 +986,22 @@
       }
       
       // Setup immediate voice activity detection after connection is established
-      // Longer delay for mobile devices
-      const vadDelay = isMobile ? 3000 : 1000;  // 3 seconds for mobile, 1 second for desktop
-      
-      setTimeout(() => {
-        console.log(`📱 Setting up VAD with ${vadDelay}ms delay for ${isMobile ? 'mobile' : 'desktop'}`);
-        setupImmediateVoiceActivityDetection(room);
-      }, vadDelay);
+      // Skip VAD for Chrome Android to prevent freezing
+      if (isChromeAndroid) {
+        addMobileDebug('⚠️ Skipping VAD for Chrome Android (freeze prevention)');
+        // Show basic listening animation instead
+        setTimeout(() => {
+          updateWaveAnimation(false); // Show listening state
+        }, 2000);
+      } else {
+        // Longer delay for other mobile devices
+        const vadDelay = isMobile ? 3000 : 1000;  // 3 seconds for mobile, 1 second for desktop
+        
+        setTimeout(() => {
+          console.log(`📱 Setting up VAD with ${vadDelay}ms delay for ${isMobile ? 'mobile' : 'desktop'}`);
+          setupImmediateVoiceActivityDetection(room);
+        }, vadDelay);
+      }
       
       // DEBUG: Periodic room state monitoring
       const roomMonitor = setInterval(() => {
@@ -1183,21 +1198,36 @@
   function updateWaveAnimation(isPlaying) {
     const inputWrapper = document.querySelector('.iheard-chat-input');
     
+    // Detect Chrome Android for simplified UI
+    const isChromeAndroid = /Chrome.*Android/i.test(navigator.userAgent);
+    
     if (isVoiceConnected && isPlaying) {
       // Show wave animation when AI is speaking
       inputWrapper.classList.add('showing-waves');
-      inputWrapper.innerHTML = `
-        <div class="iheard-wave-container ai-breathing">
-          <div class="breathing-background"></div>
-          <div class="iheard-wave-text">AI is speaking...</div>
-          <div class="iheard-wave-animation ai-speaking">
-            <div class="wave-ripple wave-ripple-1"></div>
-            <div class="wave-ripple wave-ripple-2"></div>
-            <div class="wave-ripple wave-ripple-3"></div>
-            <div class="wave-ripple wave-ripple-4"></div>
+      
+      if (isChromeAndroid) {
+        // Simplified animation for Chrome Android to prevent freezing
+        inputWrapper.innerHTML = `
+          <div class="iheard-wave-container">
+            <div class="iheard-wave-text">AI is speaking...</div>
+            <div class="simple-pulse"></div>
           </div>
-        </div>
-      `;
+        `;
+      } else {
+        // Full animation for other browsers
+        inputWrapper.innerHTML = `
+          <div class="iheard-wave-container ai-breathing">
+            <div class="breathing-background"></div>
+            <div class="iheard-wave-text">AI is speaking...</div>
+            <div class="iheard-wave-animation ai-speaking">
+              <div class="wave-ripple wave-ripple-1"></div>
+              <div class="wave-ripple wave-ripple-2"></div>
+              <div class="wave-ripple wave-ripple-3"></div>
+              <div class="wave-ripple wave-ripple-4"></div>
+            </div>
+          </div>
+        `;
+      }
     } else if (isVoiceConnected && isUserSpeaking) {
       // Show wave animation when user is speaking
       inputWrapper.classList.add('showing-waves');
@@ -2462,6 +2492,27 @@
         to {
           opacity: 0;
           transform: scale(0.95);
+        }
+      }
+
+      /* Simple pulse animation for Chrome Android */
+      .simple-pulse {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, 0.6);
+        margin: 10px auto;
+        animation: simplePulse 2s ease-in-out infinite;
+      }
+
+      @keyframes simplePulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.6;
+        }
+        50% {
+          transform: scale(1.2);
+          opacity: 0.8;
         }
       }
 
