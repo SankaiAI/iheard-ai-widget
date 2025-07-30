@@ -280,7 +280,7 @@
             addLog('Testing Railway voice server connection...', 'info');
             updateStatus('server-status', 'server-status-text', 'yellow', 'Testing...');
             
-            fetch('https://iheard-ai-voice-agent-server-production.up.railway.app/health')
+            fetch('https://endearing-playfulness-production.up.railway.app/health')
                 .then(response => response.json())
                 .then(data => {
                     addLog('Railway voice server is running!', 'success');

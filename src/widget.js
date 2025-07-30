@@ -414,7 +414,7 @@
                              (window.location.hostname === 'localhost' && window.location.pathname.includes('/test-local'));
       const serverUrl = isActuallyLocal
         ? 'http://localhost:8000' 
-        : 'https://iheard-ai-voice-agent-server-production.up.railway.app';
+        : 'https://endearing-playfulness-production.up.railway.app';
       
       console.log('🌐 Using server URL:', serverUrl, '(actually local:', isActuallyLocal, ')');
       
