@@ -309,6 +309,88 @@
     }
   }
 
+  // Setup LiveKit event listeners for audio playback
+  function setupLiveKitEventListeners(room) {
+    const { RoomEvent, TrackKind } = window.LiveKit;
+    
+    // Handle remote audio tracks (agent speech)
+    room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      console.log('🎵 Track subscribed:', track.kind, 'from', participant.identity);
+      
+      if (track.kind === TrackKind.Audio) {
+        console.log('🔊 Setting up audio playback for agent speech');
+        
+        // Create audio element for playback
+        const audioElement = track.attach();
+        audioElement.autoplay = true;
+        audioElement.controls = false;
+        audioElement.style.display = 'none';
+        
+        // Add to DOM for playback
+        document.body.appendChild(audioElement);
+        
+        console.log('✅ Agent audio track attached and playing');
+      }
+    });
+
+    // Handle track unsubscribed
+    room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+      console.log('🔇 Track unsubscribed:', track.kind, 'from', participant.identity);
+      track.detach();
+    });
+
+    // Handle participant events
+    room.on(RoomEvent.ParticipantConnected, (participant) => {
+      console.log('👤 Participant connected:', participant.identity);
+    });
+
+    room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+      console.log('👤 Participant disconnected:', participant.identity);
+    });
+
+    console.log('✅ LiveKit event listeners setup complete');
+  }
+
+  // Start voice agent worker
+  async function startVoiceSession(serverUrl, roomName, apiKey) {
+    try {
+      console.log('🤖 Starting voice agent session...');
+      
+      const agentConfig = {
+        agent_id: currentAgentId || 'default',
+        name: 'iHeard.ai Assistant',
+        personality: 'friendly and helpful e-commerce assistant',
+        welcome_message: 'Hello! I\'m your iHeard.ai voice assistant. How can I help you today?',
+        voice_type: 'coral',
+        language: 'en-US',
+        response_style: 'conversational'
+      };
+      
+      const sessionResponse = await fetch(`${serverUrl}/api/agent/session/start`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          api_key: apiKey,
+          agent_config: agentConfig
+        })
+      });
+      
+      if (!sessionResponse.ok) {
+        console.warn('⚠️ Failed to start voice session:', sessionResponse.status);
+        return;
+      }
+      
+      const sessionData = await sessionResponse.json();
+      console.log('✅ Voice agent session started:', sessionData.session_id);
+      
+    } catch (error) {
+      console.warn('⚠️ Could not start voice worker:', error.message);
+      console.log('📝 Continuing without voice agent - room will work for basic connection');
+    }
+  }
+
   // LiveKit Voice Integration Functions
   async function connectToLiveKit() {
     try {
@@ -360,6 +442,44 @@
       const { Room, RoomEvent } = window.LiveKit;
       const room = new Room();
       
+      // Set up audio output handling before connecting
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log('👤 Participant connected:', participant.identity);
+        
+        // Ensure audio output is enabled for remote participants
+        if (participant.identity.includes('agent') || participant.identity.includes('assistant')) {
+          console.log('🎤 Enabling audio output for agent:', participant.identity);
+          
+          // Subscribe to audio tracks
+          participant.on('trackSubscribed', (track, publication) => {
+            console.log('🎵 Audio track subscribed:', track.kind, 'from', participant.identity);
+            
+            // Attach audio track to ensure playback
+            if (track.kind === 'audio') {
+              track.attach();
+              console.log('🔊 Audio track attached for playback');
+              
+              // Force audio element creation if needed
+              const audioElements = document.querySelectorAll('audio');
+              if (audioElements.length > 0) {
+                audioElements.forEach(audio => {
+                  audio.play().catch(e => console.log('Audio autoplay prevented, user interaction required'));
+                });
+              }
+            }
+          });
+          
+          // Handle existing audio tracks
+          participant.audioTracks.forEach((publication) => {
+            if (publication.isSubscribed) {
+              const track = publication.track;
+              console.log('🎵 Existing audio track found:', track.kind);
+              track.attach();
+            }
+          });
+        }
+      });
+      
       await room.connect(tokenData.server_url, tokenData.token);
       console.log('🎤 Connected to LiveKit room:', tokenData.room_name);
       
@@ -369,10 +489,14 @@
       // Set up event listeners
       setupLiveKitEventListeners(room);
       
+      // Start voice agent session
+      console.log('🤖 Starting voice agent session...');
+      await startVoiceSession(serverUrl, tokenData.room_name, apiKeyToUse);
+      
       // Enable microphone with proper error handling
       try {
         console.log('🎤 Requesting microphone access...');
-        await room.localParticipant.enableCameraAndMicrophone(false, true);
+        await room.localParticipant.setMicrophoneEnabled(true);
         console.log('✅ Microphone enabled successfully');
       } catch (micError) {
         console.warn('⚠️ Microphone access failed, trying alternative approach:', micError.message);
@@ -383,13 +507,34 @@
           // Stop the stream and let LiveKit handle it
           stream.getTracks().forEach(track => track.stop());
           // Try again with LiveKit
-          await room.localParticipant.enableCameraAndMicrophone(false, true);
+          await room.localParticipant.setMicrophoneEnabled(true);
           console.log('✅ Microphone enabled on second attempt');
         } catch (fallbackError) {
           console.warn('⚠️ Could not access microphone:', fallbackError.message);
           console.log('📝 Voice call will work in listen-only mode');
           // Continue without microphone - user can still hear the agent
         }
+      }
+      
+      // Test audio output by playing a silent audio
+      try {
+        console.log('🔊 Testing audio output...');
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Set volume to 0 (silent test)
+        gainNode.gain.value = 0;
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
+        
+        console.log('✅ Audio context working - audio output should be functional');
+      } catch (audioError) {
+        console.warn('⚠️ Audio context test failed:', audioError.message);
       }
       
       return room;
@@ -424,6 +569,18 @@
       console.log('👤 Agent connected:', participant.identity);
       addAgentMessage('Voice connection established. I can hear you now!');
       updateCallButtonState('connected');
+      
+      // Ensure audio output is enabled for the agent
+      if (participant.identity.includes('agent') || participant.identity.includes('assistant')) {
+        console.log('🎤 Setting up audio output for agent:', participant.identity);
+        
+        // Subscribe to all audio tracks
+        participant.audioTracks.forEach((publication) => {
+          if (!publication.isSubscribed) {
+            publication.subscribe();
+          }
+        });
+      }
     });
     
     // Handle participant disconnected
@@ -453,7 +610,17 @@
     
     // Handle audio levels for visual feedback
     room.on(RoomEvent.AudioPlaybackStatusChanged, (participant, playing) => {
+      console.log('🎵 Audio playback status:', participant.identity, playing);
       updateWaveAnimation(playing);
+      
+      // Ensure audio is playing when agent speaks
+      if (playing && participant.identity.includes('agent')) {
+        console.log('🔊 Agent is speaking - ensuring audio output');
+        // Force audio context resume if needed
+        if (window.audioContext && window.audioContext.state === 'suspended') {
+          window.audioContext.resume();
+        }
+      }
     });
 
     // Handle room disconnected
@@ -461,6 +628,27 @@
       console.log('🔇 Room disconnected');
       updateCallButtonState('disconnected');
       isVoiceConnected = false;
+    });
+    
+    // Handle track subscriptions
+    room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      console.log('🎵 Track subscribed:', track.kind, 'from', participant.identity);
+      
+      if (track.kind === 'audio' && participant.identity.includes('agent')) {
+        console.log('🔊 Audio track from agent - attaching for playback');
+        track.attach();
+        
+        // Create audio element if needed
+        const audioElements = document.querySelectorAll('audio');
+        if (audioElements.length === 0) {
+          console.log('🔊 Creating audio element for agent audio');
+          const audio = document.createElement('audio');
+          audio.autoplay = true;
+          audio.controls = false;
+          audio.style.display = 'none';
+          document.body.appendChild(audio);
+        }
+      }
     });
   }
 
