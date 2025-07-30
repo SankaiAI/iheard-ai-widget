@@ -1,5 +1,7 @@
 # iHeardAI Voice Agent Widget
 
+*Production Ready - Updated 2025-07-30*
+
 A lightweight, configurable voice agent widget that can be embedded on any website. Built with vanilla JavaScript for maximum compatibility and performance.
 
 ## 🚀 Quick Start
