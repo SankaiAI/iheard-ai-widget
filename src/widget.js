@@ -337,8 +337,15 @@
         return;
       }
       
-      // Create audio context for immediate VAD
+      // Create audio context for immediate VAD with mobile support
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Critical for mobile: Resume audio context if suspended
+      if (audioContext.state === 'suspended') {
+        console.log('📱 Resuming audio context for mobile VAD');
+        await audioContext.resume();
+      }
+      
       const mediaStream = new MediaStream([mediaStreamTrack]);
       const source = audioContext.createMediaStreamSource(mediaStream);
       const analyser = audioContext.createAnalyser();
@@ -444,6 +451,13 @@
       
     } catch (error) {
       console.warn('⚠️ Could not setup immediate voice activity detection:', error);
+      
+      // Mobile fallback: Show listening animation immediately
+      const isMobileCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobileCheck) {
+        console.log('📱 Using mobile fallback - showing listening animation');
+        updateWaveAnimation(false); // Show listening state
+      }
     }
   }
 
@@ -676,6 +690,9 @@
 
   // LiveKit Voice Integration Functions
   async function connectToLiveKit() {
+    // Mobile device detection (used throughout this function)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     try {
       console.log('🎤 Connecting to LiveKit voice server...');
       
@@ -768,6 +785,17 @@
       await room.connect(tokenData.server_url, tokenData.token);
       console.log('🎤 Connected to LiveKit room:', tokenData.room_name);
       
+      // Mobile-specific debugging
+      if (isMobile) {
+        console.log('📱 Mobile device detected - checking audio capabilities');
+        console.log('📱 Navigator capabilities:', {
+          mediaDevices: !!navigator.mediaDevices,
+          getUserMedia: !!navigator.mediaDevices?.getUserMedia,
+          userAgent: navigator.userAgent,
+          audioContext: !!(window.AudioContext || window.webkitAudioContext)
+        });
+      }
+      
       // DEBUG: Show initial room state
       console.log('🏠 Room connection details:', {
         roomName: room.name,
@@ -804,33 +832,79 @@
       console.log('🤖 Starting voice agent session...');
       await startVoiceSession(serverUrl, tokenData.room_name, apiKeyToUse);
       
-      // Enable microphone with proper error handling
+      // Enable microphone with enhanced mobile support
       try {
         console.log('🎤 Requesting microphone access...');
+        
+        // For mobile: Request microphone with specific constraints
+        console.log(`📱 Mobile device detected: ${isMobile}`);
+        
+        if (isMobile) {
+          // Mobile-specific microphone constraints
+          const constraints = {
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 16000  // Lower sample rate for mobile
+            }
+          };
+          
+          console.log('📱 Using mobile-optimized audio constraints');
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          console.log('✅ Got mobile microphone permissions');
+          
+          // Brief delay for mobile audio initialization
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Stop the test stream and let LiveKit handle it
+          stream.getTracks().forEach(track => track.stop());
+        }
+        
         await room.localParticipant.setMicrophoneEnabled(true);
         console.log('✅ Microphone enabled successfully');
+        
       } catch (micError) {
-        console.warn('⚠️ Microphone access failed, trying alternative approach:', micError.message);
+        console.warn('⚠️ Microphone access failed, trying fallback approach:', micError.message);
         try {
-          // Try to get microphone permissions first
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          console.log('✅ Got microphone permissions directly');
+          // Fallback: Basic microphone request
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: false  // Disable noise suppression as fallback
+            }
+          });
+          console.log('✅ Got microphone permissions with fallback constraints');
+          
           // Stop the stream and let LiveKit handle it
           stream.getTracks().forEach(track => track.stop());
-          // Try again with LiveKit
+          
+          // Wait longer on mobile before trying LiveKit
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
           await room.localParticipant.setMicrophoneEnabled(true);
-          console.log('✅ Microphone enabled on second attempt');
+          console.log('✅ Microphone enabled on fallback attempt');
         } catch (fallbackError) {
           console.warn('⚠️ Could not access microphone:', fallbackError.message);
           console.log('📝 Voice call will work in listen-only mode');
-          // Continue without microphone - user can still hear the agent
+          // Show user-friendly message
+          if (isMobile) {
+            console.log('📱 Mobile microphone access blocked - user may need to check browser permissions');
+          }
         }
       }
       
-      // Test audio output by playing a silent audio
+      // Test and resume audio context for mobile compatibility
       try {
         console.log('🔊 Testing audio output...');
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Critical for mobile: Resume audio context
+        if (audioContext.state === 'suspended') {
+          console.log('📱 Audio context suspended - resuming for mobile compatibility');
+          await audioContext.resume();
+        }
+        
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -844,14 +918,19 @@
         oscillator.stop(audioContext.currentTime + 0.1);
         
         console.log('✅ Audio context working - audio output should be functional');
+        console.log(`🔊 Audio context state: ${audioContext.state}`);
       } catch (audioError) {
         console.warn('⚠️ Audio context test failed:', audioError.message);
       }
       
       // Setup immediate voice activity detection after connection is established
+      // Longer delay for mobile devices
+      const vadDelay = isMobile ? 3000 : 1000;  // 3 seconds for mobile, 1 second for desktop
+      
       setTimeout(() => {
+        console.log(`📱 Setting up VAD with ${vadDelay}ms delay for ${isMobile ? 'mobile' : 'desktop'}`);
         setupImmediateVoiceActivityDetection(room);
-      }, 1000);
+      }, vadDelay);
       
       // DEBUG: Periodic room state monitoring
       const roomMonitor = setInterval(() => {
