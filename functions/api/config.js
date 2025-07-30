@@ -4,6 +4,22 @@
 export async function onRequest(context) {
   const { request, env } = context;
   
+  // CORS headers for all responses
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+  
+  // Handle preflight requests
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    });
+  }
+  
   // Get agent ID from query parameters
   const url = new URL(request.url);
   const agentId = url.searchParams.get('agentId');
@@ -11,7 +27,7 @@ export async function onRequest(context) {
   if (!agentId) {
     return new Response(JSON.stringify({ error: 'Agent ID required' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: corsHeaders
     });
   }
   
@@ -41,35 +57,30 @@ export async function onRequest(context) {
         if (!config.isActive || !config.isEnabled) {
           return new Response(JSON.stringify({ error: 'Agent is not active or enabled' }), {
             status: 403,
-            headers: { 'Content-Type': 'application/json' }
+            headers: corsHeaders
           });
         }
         
         return new Response(JSON.stringify({ config }), {
           status: 200,
-          headers: { 
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          }
+          headers: corsHeaders
         });
       } else {
         return new Response(JSON.stringify({ error: 'Agent not found' }), {
           status: 404,
-          headers: { 'Content-Type': 'application/json' }
+          headers: corsHeaders
         });
       }
     } else {
       return new Response(JSON.stringify({ error: 'Failed to fetch configuration' }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: corsHeaders
       });
     }
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: corsHeaders
     });
   }
 } 
