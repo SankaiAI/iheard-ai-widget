@@ -688,42 +688,9 @@
     }
   }
 
-  // Mobile debugging overlay for troubleshooting
-  let mobileDebugLog = [];
+  // Simplified mobile logging (no overlay)
   function addMobileDebug(message) {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isChromeAndroid = /Chrome.*Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      if (isChromeAndroid) {
-        message = `[CHROME] ${message}`;
-      }
-      mobileDebugLog.push(`${new Date().toLocaleTimeString()}: ${message}`);
-      console.log(`📱 MOBILE DEBUG: ${message}`);
-      
-      // Show debug overlay on mobile
-      let debugDiv = document.getElementById('mobile-debug-overlay');
-      if (!debugDiv) {
-        debugDiv = document.createElement('div');
-        debugDiv.id = 'mobile-debug-overlay';
-        debugDiv.style.cssText = `
-          position: fixed;
-          top: 10px;
-          left: 10px;
-          right: 10px;
-          background: rgba(0,0,0,0.9);
-          color: white;
-          padding: 10px;
-          font-size: 12px;
-          z-index: 10000;
-          max-height: 200px;
-          overflow-y: auto;
-          border-radius: 5px;
-        `;
-        document.body.appendChild(debugDiv);
-      }
-      debugDiv.innerHTML = mobileDebugLog.slice(-10).join('<br>'); // Show last 10 logs
-    }
+    console.log(`📱 MOBILE: ${message}`);
   }
 
   // LiveKit Voice Integration Functions
@@ -985,22 +952,19 @@
         console.warn('⚠️ Audio context test failed:', audioError.message);
       }
       
-      // Setup immediate voice activity detection after connection is established
-      // Skip VAD for Chrome Android to prevent freezing
-      if (isChromeAndroid) {
-        addMobileDebug('⚠️ Skipping VAD for Chrome Android (freeze prevention)');
-        // Show basic listening animation instead
+      // Setup voice activity detection - skip for all mobile to prevent freezing
+      if (isMobile) {
+        addMobileDebug('⚠️ Skipping VAD for mobile (freeze prevention)');
+        // Show basic listening state for mobile
         setTimeout(() => {
           updateWaveAnimation(false); // Show listening state
         }, 2000);
       } else {
-        // Longer delay for other mobile devices
-        const vadDelay = isMobile ? 3000 : 1000;  // 3 seconds for mobile, 1 second for desktop
-        
+        // Only enable VAD on desktop
         setTimeout(() => {
-          console.log(`📱 Setting up VAD with ${vadDelay}ms delay for ${isMobile ? 'mobile' : 'desktop'}`);
+          console.log('🖥️ Setting up VAD for desktop');
           setupImmediateVoiceActivityDetection(room);
-        }, vadDelay);
+        }, 1000);
       }
       
       // DEBUG: Periodic room state monitoring
@@ -1195,62 +1159,47 @@
     }
   }
 
-  function updateWaveAnimation(isPlaying) {
+  function updateWaveAnimation(isAISpeaking = false) {
     const inputWrapper = document.querySelector('.iheard-chat-input');
+    if (!inputWrapper) return;
     
-    // Detect Chrome Android for simplified UI
-    const isChromeAndroid = /Chrome.*Android/i.test(navigator.userAgent);
-    
-    if (isVoiceConnected && isPlaying) {
-      // Show wave animation when AI is speaking
-      inputWrapper.classList.add('showing-waves');
-      
-      if (isChromeAndroid) {
-        // Simplified animation for Chrome Android to prevent freezing
-        inputWrapper.innerHTML = `
-          <div class="iheard-wave-container">
-            <div class="iheard-wave-text">AI is speaking...</div>
-            <div class="simple-pulse"></div>
-          </div>
-        `;
-      } else {
-        // Full animation for other browsers
-        inputWrapper.innerHTML = `
-          <div class="iheard-wave-container ai-breathing">
-            <div class="breathing-background"></div>
-            <div class="iheard-wave-text">AI is speaking...</div>
-            <div class="iheard-wave-animation ai-speaking">
-              <div class="wave-ripple wave-ripple-1"></div>
-              <div class="wave-ripple wave-ripple-2"></div>
-              <div class="wave-ripple wave-ripple-3"></div>
-              <div class="wave-ripple wave-ripple-4"></div>
-            </div>
-          </div>
-        `;
-      }
-    } else if (isVoiceConnected && isUserSpeaking) {
-      // Show wave animation when user is speaking
-      inputWrapper.classList.add('showing-waves');
+    if (!isVoiceConnected) {
+      // Not connected - restore normal input
+      inputWrapper.classList.remove('showing-waves');
       inputWrapper.innerHTML = `
-        <div class="iheard-wave-container">
-          <div class="iheard-wave-text">You are speaking...</div>
-          <div class="iheard-wave-animation user-speaking">
-            <div class="wave-ripple wave-ripple-1"></div>
-            <div class="wave-ripple wave-ripple-2"></div>
-            <div class="wave-ripple wave-ripple-3"></div>
-            <div class="wave-ripple wave-ripple-4"></div>
-          </div>
+        <input type="text" class="iheard-chat-message-input" placeholder="${widgetConfig.inputPlaceholder}" />
+        <button class="iheard-chat-send-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22,2 15,22 11,13 2,9"></polygon>
+          </svg>
+        </button>
+      `;
+      return;
+    }
+
+    // Voice is connected - show appropriate status
+    inputWrapper.classList.add('showing-waves');
+    
+    if (isAISpeaking) {
+      // AI is speaking - highest priority
+      inputWrapper.innerHTML = `
+        <div class="iheard-text-only">
+          <div class="iheard-status-text ai-speaking">AI is speaking...</div>
         </div>
       `;
-    } else if (isVoiceConnected) {
-      // Show listening state when connected but nobody speaking
-      inputWrapper.classList.add('showing-waves');
+    } else if (isUserSpeaking) {
+      // User is speaking
       inputWrapper.innerHTML = `
-        <div class="iheard-wave-container">
-          <div class="iheard-wave-text">I'm listening...</div>
-          <div class="iheard-wave-animation static">
-            <div class="wave-ripple wave-ripple-static"></div>
-          </div>
+        <div class="iheard-text-only">
+          <div class="iheard-status-text user-speaking">You are speaking...</div>
+        </div>
+      `;
+    } else {
+      // Default listening state
+      inputWrapper.innerHTML = `
+        <div class="iheard-text-only">
+          <div class="iheard-status-text listening">I'm listening...</div>
         </div>
       `;
     }
@@ -2495,25 +2444,43 @@
         }
       }
 
-      /* Simple pulse animation for Chrome Android */
-      .simple-pulse {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(59, 130, 246, 0.6);
-        margin: 10px auto;
-        animation: simplePulse 2s ease-in-out infinite;
+      /* Text-only voice status interface */
+      .iheard-text-only {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 15px 20px;
+        background: transparent;
+        border-radius: 25px;
+        min-height: 50px;
+        width: 100%;
+        box-sizing: border-box;
       }
 
-      @keyframes simplePulse {
-        0%, 100% {
-          transform: scale(1);
-          opacity: 0.6;
-        }
-        50% {
-          transform: scale(1.2);
-          opacity: 0.8;
-        }
+      .iheard-status-text {
+        font-size: 14px;
+        font-weight: 500;
+        text-align: center;
+        margin: 0;
+        color: #667eea;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .iheard-status-text.listening {
+        color: #667eea;
+      }
+
+      .iheard-status-text.user-speaking {
+        color: #4ade80;
+        font-weight: 600;
+      }
+
+      .iheard-status-text.ai-speaking {
+        color: #3b82f6;
+        font-weight: 600;
       }
 
       .iheard-wave-container.fade-out {
