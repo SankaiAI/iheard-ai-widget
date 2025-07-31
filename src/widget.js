@@ -172,13 +172,13 @@
       clearInterval(configPollingInterval);
     }
     
-    // Poll every 2 seconds for development (adjust for production)
+    // Poll every 30 seconds for production (reduced from 2 seconds to improve mobile performance)
     configPollingInterval = setInterval(() => {
       if (currentAgentId) {
         console.log('🔄 Polling for configuration updates...');
         fetchConfiguration(currentAgentId, true); // true = silent update
       }
-    }, 2000); // 2 seconds
+    }, 30000); // 30 seconds
   }
 
   // Stop polling
@@ -516,18 +516,27 @@
           smoothingTimeConstant: 0
         });
         
-        // Monitor audio levels in real-time
-        const volumeInterval = setInterval(() => {
-          const volume = calculateVolume();
-          
-          if (volume > 0.01) { // Threshold for detecting speech
-            console.log(`🔊 AI Agent ${participant.identity} audio level: ${volume}`);
-          }
-        }, 100); // Check every 100ms
+        // Monitor audio levels in real-time (disabled for mobile performance)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        let volumeInterval = null;
+        
+        if (!isMobile) {
+          volumeInterval = setInterval(() => {
+            const volume = calculateVolume();
+            
+            if (volume > 0.01) { // Threshold for detecting speech
+              console.log(`🔊 AI Agent ${participant.identity} audio level: ${volume}`);
+            }
+          }, 500); // Reduced from 100ms to 500ms for better performance
+        } else {
+          console.log('📱 Mobile browser detected - skipping audio level monitoring for performance');
+        }
         
         // Cleanup when track ends
         track.on('ended', () => {
-          clearInterval(volumeInterval);
+          if (volumeInterval) {
+            clearInterval(volumeInterval);
+          }
           cleanup();
         });
         
@@ -967,39 +976,7 @@
         }, 1000);
       }
       
-      // DEBUG: Periodic room state monitoring
-      const roomMonitor = setInterval(() => {
-        const remoteParticipants = Array.from(room.remoteParticipants.values());
-        console.log('🔍 Room state check:', {
-          roomName: room.name,
-          connectionState: room.state,
-          localParticipant: room.localParticipant.identity,
-          remoteParticipants: remoteParticipants.map(p => ({
-            identity: p.identity,
-            connectionState: p.connectionState,
-            audioTracks: p.audioTrackPublications.size,
-            isSpeaking: p.isSpeaking,
-            audioLevel: p.audioLevel
-          })),
-          totalParticipants: room.numParticipants
-        });
-        
-        // IMMEDIATELY check if any remote participant should trigger AI animation
-        remoteParticipants.forEach(participant => {
-          console.log(`🎯 Checking participant: "${participant.identity}"`, {
-            isSpeaking: participant.isSpeaking,
-            audioLevel: participant.audioLevel,
-            isAIAgent: participant.identity.includes('agent') || participant.identity.includes('assistant') || participant.identity.includes('ai')
-          });
-          
-          // Note: Manual trigger removed since event listeners are working properly
-        });
-      }, 10000); // Check every 10 seconds (reduced frequency)
-      
-      // Clear monitor when room disconnects
-      room.on(window.LiveKit.RoomEvent.Disconnected, () => {
-        clearInterval(roomMonitor);
-      });
+      // Removed continuous room monitoring to improve performance
       
       // Also listen for track publications (more reliable)
       room.localParticipant.on('trackPublished', (publication) => {
@@ -1042,7 +1019,7 @@
     // Handle participant connected
     room.on(RoomEvent.ParticipantConnected, (participant) => {
       console.log('👤 Agent connected:', participant.identity);
-      addAgentMessage('Voice connection established. I can hear you now!');
+      // Don't show user message here - will show after full connection is established
       updateCallButtonState('connected');
       
       // Ensure audio output is enabled for the agent
@@ -1064,7 +1041,10 @@
     // Handle participant disconnected
     room.on(RoomEvent.ParticipantDisconnected, (participant) => {
       console.log('👤 Agent disconnected:', participant.identity);
-      addAgentMessage('Voice connection ended.');
+      // Only show disconnect message if it's the agent and we're actually connected
+      if (isVoiceConnected && (participant.identity.includes('agent') || participant.identity.includes('assistant'))) {
+        addAgentMessage('Voice connection ended.');
+      }
       updateCallButtonState('disconnected');
     });
     
@@ -1106,6 +1086,7 @@
       console.log('🔇 Room disconnected');
       updateCallButtonState('disconnected');
       isVoiceConnected = false;
+      updateWaveAnimation(); // Restore normal input when disconnected
     });
     
     // Track subscription is handled by the main TrackSubscribed event above
@@ -1166,15 +1147,27 @@
     if (!isVoiceConnected) {
       // Not connected - restore normal input
       inputWrapper.classList.remove('showing-waves');
+      
+      // Determine if we should use default appearance
+      const inputClass = widgetConfig.useDefaultAppearance ? 'iheard-input default-appearance' : 'iheard-input';
+      
       inputWrapper.innerHTML = `
-        <input type="text" class="iheard-chat-message-input" placeholder="${widgetConfig.inputPlaceholder}" />
-        <button class="iheard-chat-send-btn">
+        <input type="text" class="${inputClass}" placeholder="${widgetConfig.inputPlaceholder}" />
+        <button class="iheard-action-btn" title="Send message">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="22" y1="2" x2="11" y2="13"></line>
-            <polygon points="22,2 15,22 11,13 2,9"></polygon>
+            <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
           </svg>
         </button>
       `;
+      
+      // Re-attach event listeners for the restored input
+      const input = inputWrapper.querySelector('.iheard-input');
+      const actionBtn = inputWrapper.querySelector('.iheard-action-btn');
+      if (input && actionBtn) {
+        setupInputEventListeners(input, actionBtn);
+      }
+      
       return;
     }
 
@@ -1210,6 +1203,13 @@
       // Don't setup if already running
       if (voiceActivityDetector) {
         console.log('🎤 Voice activity detection already running');
+        return;
+      }
+
+      // Disable voice activity detection on mobile browsers for performance
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+      if (isMobile) {
+        console.log('📱 Mobile browser detected - skipping voice activity detection for performance');
         return;
       }
 
@@ -1405,6 +1405,7 @@
       console.error('❌ Call button action failed:', error);
       updateCallButtonState('disconnected');
       isVoiceConnected = false;
+      updateWaveAnimation(); // Restore normal input when call fails
       addAgentMessage(`Voice call failed: ${error.message}. Please try again.`);
     }
   }
