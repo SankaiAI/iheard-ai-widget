@@ -3149,8 +3149,20 @@
     }
   }
 
+  // Remove welcome message when any chat message appears
+  function removeWelcomeMessage() {
+    const welcomeMessage = document.querySelector('.iheard-welcome-message');
+    if (welcomeMessage) {
+      welcomeMessage.classList.add('fade-out');
+      setTimeout(() => {
+        welcomeMessage.remove();
+      }, 300); // Match fade-out animation duration
+    }
+  }
+
   // Add user message
   function addUserMessage(text) {
+    removeWelcomeMessage(); // Remove welcome message immediately
     const messagesContainer = document.querySelector('.iheard-chat-messages');
     const message = document.createElement('div');
     message.className = 'iheard-message user-message';
@@ -3166,6 +3178,7 @@
 
   // Add agent message
   function addAgentMessage(text) {
+    removeWelcomeMessage(); // Remove welcome message immediately
     const messagesContainer = document.querySelector('.iheard-chat-messages');
     const message = document.createElement('div');
     message.className = 'iheard-message assistant-message';
