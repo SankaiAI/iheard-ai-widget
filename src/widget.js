@@ -114,6 +114,7 @@
   let voiceActivityDetector = null;
   let isUserSpeaking = false;
   let currentApiKey = null;
+  let currentServerUrl = null;
   
   // Transcription management
   let transcriptionBuffer = [];
@@ -124,32 +125,37 @@
     // Try to get parameters from the script tag that loaded this widget
     let apiKey = null;
     let agentId = null;
+    let serverUrl = null;
     
     // Find the script tag that loaded this widget
     const scripts = document.querySelectorAll('script[src*="widget"]');
     for (const script of scripts) {
       const scriptUrl = new URL(script.src, window.location.origin);
       if (!apiKey) apiKey = scriptUrl.searchParams.get('apiKey');
-      if (!agentId) agentId = scriptUrl.searchParams.get('agentId');
+      if (!agentId) agentId = scriptUrl.searchParams.get('agentId'); 
+      if (!serverUrl) serverUrl = scriptUrl.searchParams.get('serverUrl');
     }
     
     // Fallback to page URL parameters if not found in script
-    if (!apiKey || !agentId) {
+    if (!apiKey || !agentId || !serverUrl) {
       const urlParams = new URLSearchParams(window.location.search);
       if (!apiKey) apiKey = urlParams.get('apiKey');
       if (!agentId) agentId = urlParams.get('agentId');
+      if (!serverUrl) serverUrl = urlParams.get('serverUrl');
     }
     
     console.log('🔍 getInitialConfig called');
     console.log('🔍 Script tags found:', scripts.length);
-    console.log('🔍 URL params:', { apiKey, agentId });
+    console.log('🔍 URL params:', { apiKey, agentId, serverUrl });
     console.log('🔍 Current URL:', window.location.href);
     
-    // Store agent ID and API key for polling
+    // Store configuration for use throughout the widget
     currentAgentId = agentId;
     currentApiKey = apiKey || agentId; // Store the API key for LiveKit connections
+    currentServerUrl = serverUrl; // Store the server URL for voice agent connections
     console.log('🔍 Stored currentAgentId:', currentAgentId);
     console.log('🔍 Stored currentApiKey:', currentApiKey ? 'Present' : 'Missing');
+    console.log('🔍 Stored currentServerUrl:', currentServerUrl || 'Not provided');
     
     // For local testing, skip configuration fetching and use defaults
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -758,9 +764,26 @@
       // Generate room name for your voice assistant
       const roomName = `voice_room_${currentAgentId || 'default'}_${Date.now()}`;
       
+      // Determine server URL: Use configured URL, or smart defaults based on environment
+      let serverUrl;
+      if (currentServerUrl) {
+        // Use the server URL provided by the customer/developer
+        serverUrl = currentServerUrl;
+        console.log('🎯 Using configured server URL:', serverUrl);
+      } else if (isLocalTesting) {
+        // Local development fallback
+        serverUrl = 'http://localhost:8001';
+        console.log('🔧 Using local development server URL:', serverUrl);
+      } else {
+        // Production fallback (your main SaaS server)
+        serverUrl = 'https://endearing-playfulness-production.up.railway.app';
+        console.log('⚠️ No server URL configured, using default SaaS server:', serverUrl);
+      }
+      
       // Get LiveKit token from your voice assistant server
       console.log('🎟️ Requesting token from your voice assistant server...');
-      const tokenResponse = await fetch('http://localhost:8001/api/livekit/token', {
+      console.log('🌐 Using server URL:', serverUrl);
+      const tokenResponse = await fetch(`${serverUrl}/api/livekit/token`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
@@ -773,7 +796,10 @@
       });
       
       if (!tokenResponse.ok) {
-        throw new Error(`Token request failed: ${tokenResponse.status} - Make sure your voice assistant server is running on localhost:8001`);
+        const serverInfo = isLocalTesting 
+          ? 'localhost:8001 (run: python main.py start)'
+          : serverUrl;
+        throw new Error(`Token request failed: ${tokenResponse.status} - Make sure your voice assistant server is running on ${serverInfo}`);
       }
       
       const tokenData = await tokenResponse.json();
@@ -833,14 +859,20 @@
         await room.connect(tokenData.url, tokenData.token);
         console.log('🎤 Connected to your voice assistant room:', tokenData.room);
         addMobileDebug('✅ Connected to voice assistant room');
+        
+        // Start the voice agent session
+        await startVoiceSession(serverUrl, roomName, apiKeyToUse);
       } catch (connectError) {
         console.error('❌ Failed to connect to your voice assistant:', connectError.message);
         
         // Provide helpful error information
         if (connectError.message.includes('token') || connectError.message.includes('auth')) {
+          const serverInfo = isLocalTesting 
+            ? 'localhost:8001 (run: python main.py start)'
+            : serverUrl;
           throw new Error(`Authentication failed. Make sure:
-1. Your voice assistant server is running: python main.py dev
-2. The token server is accessible on localhost:8001
+1. Your voice assistant server is running
+2. The token server is accessible on ${serverInfo}
 3. Your LiveKit server is properly configured`);
         } else if (connectError.message.includes('network') || connectError.message.includes('connection')) {
           throw new Error(`Network connection failed. Make sure:
