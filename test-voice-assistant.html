@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iHeard AI Widget - Voice Assistant Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .instructions {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 iHeard AI Voice Assistant Test</h1>
+        
+        <div class="instructions">
+            <p><strong>Testing your voice assistant integration:</strong></p>
+            
+            <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                <h4 style="margin: 0 0 10px 0; color: #0c5460;">🚀 Direct Integration</h4>
+                <p style="margin: 0; font-size: 14px; color: #0c5460;">
+                    Your widget now connects directly to your voice assistant server! 
+                    The server provides authentication tokens and handles all voice processing.
+                </p>
+            </div>
+            
+            <ol style="text-align: left; max-width: 600px; margin: 0 auto;">
+                <li><strong>Start your voice assistant:</strong>
+                    <br><code class="highlight">cd voice-agent-server && python main.py dev</code>
+                </li>
+                <li><strong>Use the widget:</strong>
+                    <br>• Look for the iHeard AI widget in the bottom-right corner
+                    <br>• Click the <strong>Call button (📞)</strong> in the widget header
+                    <br>• Grant microphone permissions when prompted
+                    <br>• The widget will automatically connect to your voice assistant server
+                </li>
+                <li><strong>Watch the real-time conversation:</strong>
+                    <br>• Your speech appears in blue chat bubbles (streaming in real-time)
+                    <br>• AI responses appear in gray chat bubbles (streaming as AI thinks)
+                    <br>• You'll hear the AI voice responses through your speakers
+                </li>
+                <li><strong>Test the voice conversation:</strong>
+                    <ul>
+                        <li>✅ Your speech transcribed in real-time (immutable streaming)</li>
+                        <li>✅ AI responses generated and displayed in real-time</li>
+                        <li>✅ AI voice responses played back</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="status">
+            <strong>🔗 Connection Details:</strong><br>
+            Voice Assistant Server: <code>localhost:8001 (token server)</code><br>
+            LiveKit Server: <code>wss://iheardai-voice-8chvwzwu.livekit.cloud</code><br>
+            Room Pattern: <code>voice_room_AGENT_TIMESTAMP</code><br>
+            Voice Assistant: <code>Local Python Agent (main.py)</code>
+        </div>
+
+        <p style="color: #888; font-size: 14px; margin-top: 30px;">
+            The widget will automatically connect to your local voice assistant when you click Call.
+            Open browser console (F12) to see detailed connection logs.
+        </p>
+    </div>
+
+    <!-- Load LiveKit Client SDK -->
+    <script src="https://unpkg.com/livekit-client@2.1.1/dist/livekit-client.umd.js"></script>
+    
+    <!-- Load your updated widget -->
+    <script src="src/widget.js"></script>
+    
+    <!-- Initialize the widget -->
+    <script>
+        // Initialize widget with local testing configuration
+        window.iHeardAI.init({
+            apiKey: 'test-local-key',
+            position: 'bottom-right',
+            theme: 'light',
+            title: 'Voice Assistant Test',
+            inputPlaceholder: 'Test voice or text chat...',
+            agentId: 'voice-test-agent'
+        });
+
+        console.log('🎤 iHeard AI Widget initialized for voice assistant testing');
+        console.log('📞 Click the Call button in the widget to test your voice assistant!');
+
+        // Listen for widget connection failures and provide playground link
+        const originalConsoleWarn = console.warn;
+        const originalConsoleError = console.error;
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            
+            // Check if this is a connection failure
+            if (args.some(arg => typeof arg === 'string' && arg.includes('Direct connection failed'))) {
+                // Generate playground URL for easy testing
+                const serverUrl = 'wss://iheardai-voice-8chvwzwu.livekit.cloud';
+                const roomName = `playground-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 5)}`;
+                const playgroundUrl = `https://agents-playground.livekit.io/?tab=connect&server_url=${encodeURIComponent(serverUrl)}&room=${roomName}`;
+                
+                // Add a visual notification to the page
+                setTimeout(() => {
+                    const container = document.querySelector('.container');
+                    const notification = document.createElement('div');
+                    notification.style.cssText = `
+                        background: #e3f2fd;
+                        border: 2px solid #2196f3;
+                        border-radius: 12px;
+                        padding: 20px;
+                        margin: 20px 0;
+                        animation: slideIn 0.5s ease-out;
+                    `;
+                    notification.innerHTML = `
+                        <h4 style="margin: 0 0 10px 0; color: #1976d2;">🎮 Use LiveKit Playground Instead</h4>
+                        <p style="margin: 0 0 15px 0; color: #333;">
+                            Widget connection failed (authentication required). Click the button below to test your voice assistant directly:
+                        </p>
+                        <a href="${playgroundUrl}" target="_blank" style="
+                            display: inline-block;
+                            background: #2196f3;
+                            color: white;
+                            padding: 12px 24px;
+                            border-radius: 8px;
+                            text-decoration: none;
+                            font-weight: bold;
+                            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+                        ">🚀 Open LiveKit Playground</a>
+                        <p style="margin: 15px 0 0 0; font-size: 14px; color: #666;">
+                            This will connect you directly to room <code>${roomName}</code> where your voice assistant is waiting!
+                        </p>
+                    `;
+                    
+                    // Add animation
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        @keyframes slideIn {
+                            from { opacity: 0; transform: translateY(-20px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    
+                    container.appendChild(notification);
+                }, 1000);
+            }
+        };
+    </script>
+</body>
+</html>

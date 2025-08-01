@@ -114,6 +114,10 @@
   let voiceActivityDetector = null;
   let isUserSpeaking = false;
   let currentApiKey = null;
+  
+  // Transcription management
+  let transcriptionBuffer = [];
+  let interimTranscriptions = new Map(); // Store interim transcriptions by segment ID
 
   // Get configuration from URL parameters or data attributes
   function getInitialConfig() {
@@ -480,9 +484,15 @@
           // Immediately stop user speaking animation
           isUserSpeaking = false;
           updateWaveAnimation(true);
+          
+          // Request transcription from agent
+          requestAgentTranscription();
         } else {
           console.log('🤐 AI agent stopped speaking (IsSpeakingChanged)');
           updateWaveAnimation(false);
+          
+          // Agent transcription disabled - no placeholder messages will be shown
+          console.log('📝 Agent transcription disabled - skipping fallback placeholder');
         }
       });
       
@@ -702,6 +712,9 @@
     console.log(`📱 MOBILE: ${message}`);
   }
 
+  // Token generation is now handled by the voice assistant server
+  // No need for local token generation
+
   // LiveKit Voice Integration Functions
   async function connectToLiveKit() {
     // Mobile device detection (used throughout this function)
@@ -739,35 +752,35 @@
       await waitForLiveKit();
       addMobileDebug('✅ LiveKit client loaded');
 
-      // Always use Railway production server for CDN widget
-      // Only use localhost if explicitly loading from a local file
-      const isActuallyLocal = window.location.protocol === 'file:' || 
-                             (window.location.hostname === 'localhost' && window.location.pathname.includes('/test-local'));
-      const serverUrl = isActuallyLocal
-        ? 'http://localhost:8000' 
-        : 'https://endearing-playfulness-production.up.railway.app';
+      // 🎯 Connect directly to your voice assistant server!
+      console.log('🎤 Connecting to your voice assistant server...');
       
-      console.log('🌐 Using server URL:', serverUrl, '(actually local:', isActuallyLocal, ')');
+      // Generate room name for your voice assistant
+      const roomName = `voice_room_${currentAgentId || 'default'}_${Date.now()}`;
       
-      // Get LiveKit token from voice agent server
-      const tokenResponse = await fetch(`${serverUrl}/api/livekit/token`, {
+      // Get LiveKit token from your voice assistant server
+      console.log('🎟️ Requesting token from your voice assistant server...');
+      const tokenResponse = await fetch('http://localhost:8001/api/livekit/token', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           api_key: apiKeyToUse,
-          room_name: `voice_room_${currentAgentId || 'default'}`,
+          room_name: roomName,
           participant_name: 'User'
         })
       });
       
       if (!tokenResponse.ok) {
-        throw new Error(`Token request failed: ${tokenResponse.status}`);
+        throw new Error(`Token request failed: ${tokenResponse.status} - Make sure your voice assistant server is running on localhost:8001`);
       }
       
       const tokenData = await tokenResponse.json();
-      console.log('🎟️ Received LiveKit token');
+      console.log('🎟️ Received token from your voice assistant server:', {
+        room: tokenData.room,
+        url: tokenData.url
+      });
       
       // Connect to LiveKit room
       const { Room, RoomEvent } = window.LiveKit;
@@ -814,9 +827,32 @@
       });
       
       addMobileDebug('🔗 Attempting room connection...');
-      await room.connect(tokenData.server_url, tokenData.token);
-      console.log('🎤 Connected to LiveKit room:', tokenData.room_name);
-      addMobileDebug('✅ Connected to LiveKit room');
+      
+      try {
+        // Connect to your voice assistant with the token
+        await room.connect(tokenData.url, tokenData.token);
+        console.log('🎤 Connected to your voice assistant room:', tokenData.room);
+        addMobileDebug('✅ Connected to voice assistant room');
+      } catch (connectError) {
+        console.error('❌ Failed to connect to your voice assistant:', connectError.message);
+        
+        // Provide helpful error information
+        if (connectError.message.includes('token') || connectError.message.includes('auth')) {
+          throw new Error(`Authentication failed. Make sure:
+1. Your voice assistant server is running: python main.py dev
+2. The token server is accessible on localhost:8001
+3. Your LiveKit server is properly configured`);
+        } else if (connectError.message.includes('network') || connectError.message.includes('connection')) {
+          throw new Error(`Network connection failed. Make sure:
+1. Your voice assistant server is running: python main.py dev
+2. Your internet connection is stable
+3. The LiveKit server is accessible`);
+        } else {
+          throw new Error(`Connection failed: ${connectError.message}
+          
+Make sure your voice assistant server is running with: python main.py dev`);
+        }
+      }
       
       // Mobile-specific debugging
       if (isMobile) {
@@ -861,9 +897,8 @@
         });
       }, 2000);
       
-      // Start voice agent session
-      console.log('🤖 Starting voice agent session...');
-      await startVoiceSession(serverUrl, tokenData.room_name, apiKeyToUse);
+      // Voice assistant will automatically detect the user when they join the room
+      console.log('🤖 Voice assistant will connect automatically...');
       
       // Enable microphone with enhanced mobile support
       try {
@@ -1016,6 +1051,10 @@
   function setupLiveKitEventListeners(room) {
     const { RoomEvent } = window.LiveKit;
     
+    // Debug: Check available room events
+    console.log('🔍 Available RoomEvent constants:', Object.keys(RoomEvent));
+    console.log('🔍 TranscriptionReceived available:', 'TranscriptionReceived' in RoomEvent);
+    
     // Handle participant connected
     room.on(RoomEvent.ParticipantConnected, (participant) => {
       console.log('👤 Agent connected:', participant.identity);
@@ -1053,7 +1092,64 @@
       if (participant && participant.identity.includes('agent')) {
         try {
           const message = new TextDecoder().decode(payload);
-          addAgentMessage(message);
+          console.log('📨 Data received from agent:', message);
+          
+          // Try to parse as JSON first (voice assistant data)
+          try {
+            const data = JSON.parse(message);
+            
+            // Handle real-time transcription from voice assistant (immutable streaming)
+            if (data.type === 'transcription') {
+              console.log('📝 Received voice assistant transcription:', data);
+              realTranscriptionReceived = true;
+              
+              // Use new streaming functions instead of old transcription system
+              // Handle immutable transcription (user speech streaming in real-time)
+              if (data.speaker && (data.speaker === 'User' || data.participant_sid)) {
+                console.log(`⏳ User transcription: ${data.text} (final: ${data.final})`);
+                
+                // If user starts speaking while assistant has an active message bubble, finalize it
+                if (!data.final && currentAssistantMessageElement && !currentUserMessageElement) {
+                  console.log('🛑 User started speaking - finalizing assistant message');
+                  currentAssistantMessageElement.classList.remove('streaming');
+                  currentAssistantMessageElement.classList.add('final');
+                  currentAssistantMessageElement = null;
+                }
+                
+                // Use the new streaming function - no more handleTranscriptionSegment
+                displayUserMessage(data.text, data.final !== false);
+              }
+              // Handle assistant speech transcription
+              else if (data.speaker === 'Assistant') {
+                console.log(`🤖 Assistant transcription: ${data.text} (final: ${data.final})`);
+                // Use the new streaming function - no more handleTranscriptionSegment
+                displayAssistantMessage(data.text, data.final !== false);
+              }
+              return;
+            }
+            
+            // chat_message type no longer sent by Python agent (removed duplicates)
+            // All messages now come through transcription type only
+            
+            // Legacy support for older message types
+            else if (data.type === 'agent_response') {
+              console.log('📝 Received legacy agent response:', data.text);
+              realTranscriptionReceived = true;
+              // Use new streaming function instead of old transcription system
+              displayAssistantMessage(data.text, true);
+              return;
+            }
+          } catch (jsonError) {
+            // Not JSON, treat as regular message
+          }
+          
+          // If it's a regular text message from agent, treat it as a message
+          if (message.trim()) {
+            console.log('📝 Treating agent message as chat:', message);
+            realTranscriptionReceived = true; // Mark that real transcriptions are working
+            // Use new streaming function instead of old transcription system  
+            displayAssistantMessage(message, true);
+          }
         } catch (error) {
           console.error('❌ Failed to decode data message:', error);
         }
@@ -1087,6 +1183,31 @@
       updateCallButtonState('disconnected');
       isVoiceConnected = false;
       updateWaveAnimation(); // Restore normal input when disconnected
+    });
+    
+    // Handle transcription events for speech-to-text display
+    if (RoomEvent.TranscriptionReceived) {
+      room.on(RoomEvent.TranscriptionReceived, (transcriptions, participant, track) => {
+        console.log('📝 Transcription received from:', participant?.identity, transcriptions);
+        console.log('📝 Full transcription event details:', { transcriptions, participant, track });
+        transcriptions.forEach(segment => {
+          handleTranscriptionSegment(segment, participant);
+        });
+      });
+    } else {
+      console.log('⚠️ TranscriptionReceived event not available in this LiveKit version');
+      console.log('🔄 Setting up alternative transcription methods...');
+      setupAlternativeTranscription(room);
+    }
+
+    // Debug: Log all room events to see what's happening
+    console.log('🔍 Setting up room event debugging...');
+    Object.values(RoomEvent).forEach(eventName => {
+      room.on(eventName, (...args) => {
+        if (eventName === RoomEvent.TranscriptionReceived) return; // Already logged above
+        if (eventName === RoomEvent.DataReceived) return; // Already logged above
+        console.log(`🏠 Room Event [${eventName}]:`, args);
+      });
     });
     
     // Track subscription is handled by the main TrackSubscribed event above
@@ -1196,6 +1317,197 @@
         </div>
       `;
     }
+  }
+
+  // Handle transcription segments and display them in chat
+  function handleTranscriptionSegment(segment, participant) {
+    const transcriptionId = segment.id;
+    const isAgent = participant.identity.includes('agent') || participant.identity.includes('assistant');
+    const isLocal = participant === livekitRoom?.localParticipant;
+    
+    const transcriptionData = {
+      id: transcriptionId,
+      text: segment.text,
+      speaker: isAgent ? 'agent' : (isLocal ? 'user' : 'user'),
+      participantName: isAgent ? 'AI Assistant' : 'You',
+      timestamp: Date.now(),
+      final: segment.final,
+      type: 'transcription'
+    };
+
+    if (segment.final) {
+      // Final transcription - remove from interim map and add to chat
+      interimTranscriptions.delete(transcriptionId);
+      
+      // Only show non-empty final transcriptions
+      if (segment.text.trim()) {
+        addTranscriptionMessage(transcriptionData);
+      }
+    } else {
+      // Interim transcription - store for updates
+      interimTranscriptions.set(transcriptionId, transcriptionData);
+      updateInterimTranscription(transcriptionData);
+    }
+  }
+
+  // Add transcription as a chat message
+  function addTranscriptionMessage(transcriptionData) {
+    removeWelcomeMessage(); // Remove welcome message if present
+    
+    const messagesContainer = document.querySelector('.iheard-chat-messages');
+    if (!messagesContainer) return;
+
+    const message = document.createElement('div');
+    message.className = `iheard-message ${transcriptionData.speaker === 'agent' ? 'assistant-message' : 'user-message'} transcription-message`;
+    message.dataset.transcriptionId = transcriptionData.id;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    // Add speech indicator icon
+    const speechIcon = document.createElement('span');
+    speechIcon.className = 'speech-icon';
+    speechIcon.innerHTML = '🎤';
+    speechIcon.title = 'Voice message';
+    
+    const textContent = document.createElement('span');
+    textContent.textContent = transcriptionData.text;
+    
+    messageContent.appendChild(speechIcon);
+    messageContent.appendChild(textContent);
+    message.appendChild(messageContent);
+    messagesContainer.appendChild(message);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    console.log(`📝 Added ${transcriptionData.speaker} transcription: "${transcriptionData.text}"`);
+  }
+
+  // Update interim transcription display (for real-time feedback)
+  function updateInterimTranscription(transcriptionData) {
+    // For now, just log interim transcriptions - could add live preview later
+    console.log(`📝 Interim ${transcriptionData.speaker}: "${transcriptionData.text}"`);
+  }
+
+  // Request transcription from agent when it starts speaking
+  function requestAgentTranscription() {
+    if (!livekitRoom || !isVoiceConnected) return;
+    
+    try {
+      const request = JSON.stringify({
+        type: 'request_transcription',
+        timestamp: Date.now()
+      });
+      
+      console.log('📤 Requesting transcription from agent');
+      livekitRoom.localParticipant.publishData(
+        new TextEncoder().encode(request),
+        { reliable: true }
+      );
+    } catch (error) {
+      console.error('❌ Failed to request transcription:', error);
+    }
+  }
+
+  // Fallback transcription when AI finishes speaking (until real transcription works)
+  let lastAITranscriptionTime = 0;
+  let realTranscriptionReceived = false; // Track if we've received real transcriptions
+  
+  function addFallbackAITranscription() {
+    // Agent transcription is completely disabled
+    console.log('📝 Agent transcription disabled - no fallback messages will be shown');
+    return;
+  }
+
+  // Alternative transcription setup for older LiveKit versions
+  function setupAlternativeTranscription(room) {
+    console.log('🔄 Web Speech API disabled - using server-side AssemblyAI STT for user transcription');
+    return; // Skip Web Speech API setup
+    
+    // Check if Web Speech API is available
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.log('⚠️ Web Speech API not available - transcription disabled');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0].transcript;
+        
+        if (result.isFinal) {
+          console.log('📝 Final user transcription:', transcript);
+          // Create fake segment for user speech
+          handleTranscriptionSegment({
+            id: `user_${Date.now()}`,
+            text: transcript,
+            final: true
+          }, { identity: 'user' });
+        } else {
+          console.log('📝 Interim user transcription:', transcript);
+        }
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('❌ Speech recognition error:', event.error);
+    };
+
+    // Start/stop recognition based on voice connection
+    let recognitionActive = false;
+    
+    const startRecognition = () => {
+      if (!recognitionActive && isVoiceConnected) {
+        try {
+          recognition.start();
+          recognitionActive = true;
+          console.log('🎤 Started user speech recognition');
+        } catch (error) {
+          console.error('❌ Failed to start speech recognition:', error);
+        }
+      }
+    };
+
+    const stopRecognition = () => {
+      if (recognitionActive) {
+        try {
+          recognition.stop();
+          recognitionActive = false;
+          console.log('🔇 Stopped user speech recognition');
+        } catch (error) {
+          console.error('❌ Failed to stop speech recognition:', error);
+        }
+      }
+    };
+
+    recognition.onend = () => {
+      recognitionActive = false;
+      // Restart if still connected
+      if (isVoiceConnected) {
+        setTimeout(startRecognition, 1000);
+      }
+    };
+
+    // Monitor voice connection state
+    const checkVoiceState = setInterval(() => {
+      if (isVoiceConnected && !recognitionActive) {
+        startRecognition();
+      } else if (!isVoiceConnected && recognitionActive) {
+        stopRecognition();
+      }
+    }, 1000);
+
+    // Cleanup on room disconnect
+    room.on(window.LiveKit.RoomEvent.Disconnected, () => {
+      stopRecognition();
+      clearInterval(checkVoiceState);
+    });
   }
 
   async function setupVoiceActivityDetection(room) {
@@ -1999,6 +2311,91 @@
         to {
           opacity: 1;
           transform: translateY(0);
+        }
+      }
+
+      /* Transcription message styles */
+      .iheard-message.transcription-message {
+        opacity: 0.95;
+      }
+
+      .iheard-message.transcription-message .message-content {
+        border-left: 3px solid #4CAF50;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+        position: relative;
+      }
+
+      .iheard-message.transcription-message.user-message .message-content {
+        border-left: none;
+        border-right: 3px solid #2196F3;
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      }
+
+      .speech-icon {
+        display: inline-block;
+        margin-right: 6px;
+        font-size: 0.9em;
+        opacity: 0.8;
+      }
+
+      .iheard-message.transcription-message .message-content:before {
+        content: 'Voice';
+        position: absolute;
+        top: -2px;
+        right: 8px;
+        font-size: 10px;
+        color: rgba(0, 0, 0, 0.5);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .iheard-message.transcription-message.user-message .message-content:before {
+        left: 8px;
+        right: auto;
+      }
+
+      /* Real-time streaming message styles for voice assistant */
+      .iheard-message.streaming .message-content {
+        background: linear-gradient(45deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        animation: streamingPulse 1.5s ease-in-out infinite;
+        position: relative;
+      }
+
+      .iheard-message.streaming.assistant-message .message-content {
+        background: linear-gradient(45deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+        border: 1px solid rgba(76, 175, 80, 0.2);
+      }
+
+      /* Removed streaming indicator icon - clean chat interface */
+
+      .iheard-message.final .message-content {
+        background: normal;
+        border: none;
+        animation: finalMessage 0.3s ease-out;
+      }
+
+      @keyframes streamingPulse {
+        0%, 100% { 
+          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+        50% { 
+          box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+        }
+      }
+
+      @keyframes typing {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+      }
+
+      @keyframes finalMessage {
+        from {
+          transform: scale(1.02);
+        }
+        to {
+          transform: scale(1);
         }
       }
 
@@ -3189,6 +3586,97 @@
     
     message.appendChild(messageContent);
     messagesContainer.appendChild(message);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  // Real-time streaming message display for voice assistant
+  let currentUserMessageElement = null;
+  let currentAssistantMessageElement = null;
+  let lastUserMessageId = null;
+
+  // Display user message with real-time streaming (immutable transcription)
+  function displayUserMessage(text, isFinal) {
+    removeWelcomeMessage();
+    const messagesContainer = document.querySelector('.iheard-chat-messages');
+    
+    // Create new message element if none exists OR if this is a new user speech
+    // This ensures each user utterance gets its own bubble
+    if (!currentUserMessageElement) {
+      // Force finalize any existing assistant message when user starts speaking
+      if (currentAssistantMessageElement) {
+        console.log('🛑 Force finalizing assistant message - user started speaking');
+        currentAssistantMessageElement.classList.remove('streaming');
+        currentAssistantMessageElement.classList.add('final');
+        currentAssistantMessageElement = null;
+      }
+      
+      currentUserMessageElement = document.createElement('div');
+      currentUserMessageElement.className = 'iheard-message user-message streaming';
+      
+      const messageContent = document.createElement('div');
+      messageContent.className = 'message-content';
+      currentUserMessageElement.appendChild(messageContent);
+      messagesContainer.appendChild(currentUserMessageElement);
+      
+      console.log('🆕 Created new user message bubble');
+    }
+    
+    // Update message content (immutable style - text only grows)
+    const messageContent = currentUserMessageElement.querySelector('.message-content');
+    messageContent.textContent = text;
+    
+    // Add final styling when complete
+    if (isFinal) {
+      currentUserMessageElement.classList.remove('streaming');
+      currentUserMessageElement.classList.add('final');
+      
+      console.log('🔒 Finalized user message bubble:', text);
+      
+      // IMPORTANT: Reset for next message - this ensures each new speech gets a new bubble
+      currentUserMessageElement = null; 
+    }
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  // Display assistant message with real-time streaming (LLM response)
+  function displayAssistantMessage(text, isFinal) {
+    removeWelcomeMessage();
+    const messagesContainer = document.querySelector('.iheard-chat-messages');
+    
+    // Create new message element if none exists
+    // Each assistant response gets its own bubble too
+    if (!currentAssistantMessageElement) {
+      currentAssistantMessageElement = document.createElement('div');
+      currentAssistantMessageElement.className = 'iheard-message assistant-message streaming';
+      
+      const messageContent = document.createElement('div');
+      messageContent.className = 'message-content';
+      currentAssistantMessageElement.appendChild(messageContent);
+      messagesContainer.appendChild(currentAssistantMessageElement);
+      
+      console.log('🆕 Created new assistant message bubble');
+    }
+    
+    // Update message content (immutable style - text only grows)
+    const messageContent = currentAssistantMessageElement.querySelector('.message-content');
+    messageContent.textContent = text;
+    
+    // Add final styling when complete
+    if (isFinal) {
+      currentAssistantMessageElement.classList.remove('streaming');
+      currentAssistantMessageElement.classList.add('final');
+      
+      console.log('🔒 Finalized assistant message bubble:', text);
+      
+      // Reset for next message - each assistant response gets its own bubble
+      currentAssistantMessageElement = null;
+      
+      // IMPORTANT: Also reset user message element so next user utterance gets a new bubble
+      // This ensures proper turn-taking: User -> Assistant -> User (new bubble) -> Assistant (new bubble)
+      currentUserMessageElement = null; 
+    }
+    
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
