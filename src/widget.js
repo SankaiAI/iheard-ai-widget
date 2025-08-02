@@ -745,6 +745,12 @@
       
       // For local testing, use a default API key if none provided
       const isLocalTesting = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      console.log('🔍 Environment Detection:', {
+        hostname: window.location.hostname,
+        protocol: window.location.protocol,
+        origin: window.location.origin,
+        isLocalTesting: isLocalTesting
+      });
       const apiKeyToUse = currentApiKey || (isLocalTesting ? 'ihd_local-test-key' : null);
       
       if (!apiKeyToUse) {
@@ -2252,74 +2258,84 @@ Make sure your voice assistant server is running with: python main.py dev`);
       }
 
       .iheard-message.user-message .message-content {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
         color: white;
-        border-bottom-right-radius: 8px;
+        border-bottom-right-radius: 6px;
         margin-left: auto;
-        margin-right: 8px;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        margin-right: 12px;
+        box-shadow: 0 2px 16px rgba(0, 122, 255, 0.25), 0 1px 4px rgba(0, 0, 0, 0.1);
         position: relative;
-        padding: 12px 16px;
-        border-radius: 20px;
-        max-width: 280px;
+        padding: 12px 18px;
+        border-radius: 22px;
+        max-width: 300px;
         min-width: 80px;
         width: fit-content;
         word-wrap: break-word;
         overflow-wrap: break-word;
+        font-weight: 500;
+        backdrop-filter: blur(20px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .iheard-message.user-message .message-content::after {
         content: '';
         position: absolute;
         bottom: 0;
-        right: -8px;
+        right: -6px;
         width: 0;
         height: 0;
-        border: 8px solid transparent;
-        border-left: 8px solid #764ba2;
+        border: 6px solid transparent;
+        border-left: 6px solid #5856d6;
         border-bottom: 0;
         border-right: 0;
+        filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1));
       }
 
       .iheard-message.assistant-message .message-content {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        color: #2c3e50;
-        border-bottom-left-radius: 8px;
-        margin-left: 8px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        color: #1d1d1f;
+        border-bottom-left-radius: 6px;
+        margin-left: 12px;
         margin-right: auto;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
         position: relative;
-        padding: 12px 16px;
-        border-radius: 20px;
-        max-width: 280px;
+        padding: 12px 18px;
+        border-radius: 22px;
+        max-width: 300px;
         min-width: 80px;
         width: fit-content;
         word-wrap: break-word;
         overflow-wrap: break-word;
+        font-weight: 400;
+        backdrop-filter: blur(20px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .iheard-message.assistant-message .message-content::after {
         content: '';
         position: absolute;
         bottom: 0;
-        left: -8px;
+        left: -6px;
         width: 0;
         height: 0;
-        border: 8px solid transparent;
-        border-right: 8px solid #c3cfe2;
+        border: 6px solid transparent;
+        border-right: 6px solid #f8f9fa;
         border-bottom: 0;
         border-left: 0;
+        filter: drop-shadow(-1px 1px 2px rgba(0, 0, 0, 0.04));
       }
 
       .iheard-message.user-message .message-content.dark-mode {
-        background: linear-gradient(135deg, #4a90e2 0%, #6c5ce7 100%);
-        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+        background: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%);
+        box-shadow: 0 2px 16px rgba(10, 132, 255, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
       }
 
       .iheard-message.assistant-message .message-content.dark-mode {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
-        color: white;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+        color: #f5f5f7;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.2);
       }
 
       .iheard-message.assistant-message .message-content.dark-mode::after {
@@ -2327,22 +2343,41 @@ Make sure your voice assistant server is running with: python main.py dev`);
       }
 
       .iheard-message .message-content:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px) scale(1.02);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .iheard-message.user-message .message-content:hover {
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 4px 20px rgba(0, 122, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .iheard-message.assistant-message .message-content:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       }
 
       @keyframes messageSlideIn {
         from {
           opacity: 0;
-          transform: translateY(10px);
+          transform: translateY(20px) scale(0.95);
         }
         to {
           opacity: 1;
-          transform: translateY(0);
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes messageBounceIn {
+        0% {
+          opacity: 0;
+          transform: translateY(20px) scale(0.8);
+        }
+        50% {
+          opacity: 0.8;
+          transform: translateY(-5px) scale(1.05);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
         }
       }
 
@@ -2389,15 +2424,16 @@ Make sure your voice assistant server is running with: python main.py dev`);
 
       /* Real-time streaming message styles for voice assistant */
       .iheard-message.streaming .message-content {
-        background: linear-gradient(45deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%);
-        border: 1px solid rgba(102, 126, 234, 0.2);
-        animation: streamingPulse 1.5s ease-in-out infinite;
+        background: linear-gradient(45deg, rgba(0, 122, 255, 0.08) 0%, rgba(88, 86, 214, 0.04) 100%);
+        border: 1px solid rgba(0, 122, 255, 0.15);
+        animation: streamingPulse 1.8s ease-in-out infinite;
         position: relative;
+        backdrop-filter: blur(20px);
       }
 
       .iheard-message.streaming.assistant-message .message-content {
-        background: linear-gradient(45deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
-        border: 1px solid rgba(76, 175, 80, 0.2);
+        background: linear-gradient(45deg, rgba(52, 199, 89, 0.08) 0%, rgba(52, 199, 89, 0.04) 100%);
+        border: 1px solid rgba(52, 199, 89, 0.15);
       }
 
       /* Removed streaming indicator icon - clean chat interface */
@@ -2410,10 +2446,12 @@ Make sure your voice assistant server is running with: python main.py dev`);
 
       @keyframes streamingPulse {
         0%, 100% { 
-          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+          box-shadow: 0 2px 12px rgba(0, 122, 255, 0.15), 0 1px 4px rgba(0, 0, 0, 0.05);
+          transform: scale(1);
         }
         50% { 
-          box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+          box-shadow: 0 4px 20px rgba(0, 122, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
+          transform: scale(1.01);
         }
       }
 
