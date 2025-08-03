@@ -240,12 +240,10 @@
     
     <!-- Load the iHeardAI Widget from source file -->
     <script>
-        // Check if Cloudflare environment variable is available
-        if (typeof window.IHEARD_TEXT_AGENT_URL !== 'undefined') {
-            console.log('☁️ Cloudflare environment variable detected:', window.IHEARD_TEXT_AGENT_URL);
-        } else {
-            console.log('🔍 No Cloudflare environment variable found - widget will use auto-detection');
-        }
+        // For CLOUD testing - force use of Railway deployment even on localhost
+        window.IHEARD_TEXT_AGENT_URL = 'https://iheard-ai-text-agent-server-production.up.railway.app';
+        console.log('☁️ CLOUD TEST MODE - Forcing Railway text agent URL:', window.IHEARD_TEXT_AGENT_URL);
+        console.log('🎯 This overrides localhost auto-detection for cloud testing');
     </script>
     <script src="src/widget.js?apiKey=ihd_test-key&agentId=test-agent" 
             onerror="console.error('❌ Failed to load widget from source:', this.src);"
