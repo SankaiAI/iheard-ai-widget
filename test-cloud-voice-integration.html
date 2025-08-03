@@ -176,15 +176,15 @@
     <div class="test-container">
         <div class="header">
             <h1>☁️ iHeardAI Voice Agent Widget</h1>
-            <p>SOURCE Testing Environment (uses src/widget.js with Railway production server)</p>
+            <p>FULL CLOUD Testing Environment (uses Cloudflare widget with Railway servers)</p>
         </div>
         
         <div class="test-info">
             <h3>🧪 Test Instructions</h3>
-            <p>This page tests the widget from source file with the CLOUD voice agent server on Railway.</p>
+            <p>This page tests the complete cloud infrastructure with all services deployed to cloud.</p>
             <ul>
-                <li><strong>Step 1:</strong> Widget loads from src/widget.js (source file)</li>
-                <li><strong>Step 2:</strong> Voice server calls go to Railway production server</li>
+                <li><strong>Step 1:</strong> Widget loads from Cloudflare Pages</li>
+                <li><strong>Step 2:</strong> Text and voice server calls go to Railway production servers</li>
                 <li><strong>Step 3:</strong> Look for the widget in the bottom-right corner</li>
                 <li><strong>Step 4:</strong> Click the widget to open the chat interface</li>
                 <li><strong>Step 5:</strong> Click the "Call" button in the pill-shaped header</li>
@@ -238,16 +238,20 @@
     <!-- Load LiveKit client first -->
     <script src="https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js" onload="console.log('✅ LiveKit script loaded from HTML'); console.log('Available LiveKit objects:', {LiveKit: typeof window.LiveKit, livekit: typeof window.livekit, LiveKitClient: typeof window.LiveKitClient, livekitClient: typeof window.livekitClient}); console.log('All window keys with live:', Object.keys(window).filter(k => k.toLowerCase().includes('live')));" onerror="console.error('❌ Failed to load LiveKit from HTML')"></script>
     
-    <!-- Load the iHeardAI Widget from source file -->
+    <!-- Load the iHeardAI Widget from Cloudflare -->
     <script>
-        // For CLOUD testing - force use of Railway deployment even on localhost
+        // For CLOUD testing - use environment variables (will be injected from .env)
+        // These URLs should be set from .env file during build/deployment
         window.IHEARD_TEXT_AGENT_URL = 'https://iheard-ai-text-agent-server-production.up.railway.app';
-        console.log('☁️ CLOUD TEST MODE - Forcing Railway text agent URL:', window.IHEARD_TEXT_AGENT_URL);
+        window.IHEARD_VOICE_AGENT_URL = 'https://endearing-playfulness-production.up.railway.app';
+        console.log('☁️ FULL CLOUD TEST MODE - Using cloud services:');
+        console.log('  📡 Text Agent URL:', window.IHEARD_TEXT_AGENT_URL);
+        console.log('  🎤 Voice Agent URL:', window.IHEARD_VOICE_AGENT_URL);
         console.log('🎯 This overrides localhost auto-detection for cloud testing');
     </script>
-    <script src="src/widget.js?apiKey=ihd_test-key&agentId=test-agent" 
-            onerror="console.error('❌ Failed to load widget from source:', this.src);"
-            onload="console.log('✅ Widget loaded from source file:', this.src)"></script>
+    <script src="https://iheard-ai-widget.pages.dev/widget.js?apiKey=ihd_test-key&agentId=test-agent" 
+            onerror="console.error('❌ Failed to load widget from Cloudflare:', this.src);"
+            onload="console.log('✅ Widget loaded from Cloudflare Pages:', this.src)"></script>
 
     <script>
         // Test page JavaScript

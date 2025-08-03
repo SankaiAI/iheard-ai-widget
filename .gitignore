@@ -2,8 +2,7 @@
 node_modules/
 pnpm-lock.yaml
 
-# Build outputs
-dist/
+# Build outputs (keep dist/ for Cloudflare deployment)
 build/
 
 # Environment variables
@@ -12,6 +11,35 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Documentation files (not needed for deployment)
+*.md
+!README.md
+CLOUDFLARE_ENV_SETUP.md
+CUSTOMER_EMBEDDING_GUIDE.md
+DEPLOYMENT_STATUS_CHECK.md
+SECURITY_BEST_PRACTICES.md
+SECURITY_OPTIONS.md
+SETUP_GUIDE.md
+SUPABASE_SECURITY_SETUP.md
+.cloudflare-files
+
+# Test files (not needed for deployment)
+test-*.html
+test-integration.html
+test-cloud-voice-integration.html
+test-local-voice-integration.html
+
+# Development scripts (not needed for deployment)
+scripts/dev-server.js
+scripts/test-widget.js
+scripts/load-env.js
+
+# Template files (not needed for deployment)
+src/widget.template.js
+
+# Public folder (redundant if using CDN)
+public/
 
 # Logs
 npm-debug.log*
