@@ -6,9 +6,13 @@
   "scripts": {
     "build": "node scripts/build.js",
     "build:cdn": "node scripts/build-cdn.js",
+    "build:prod": "NODE_ENV=production node scripts/build-cdn.js",
+    "build:staging": "NODE_ENV=staging node scripts/build-cdn.js",
     "dev": "node scripts/dev-server.js",
     "test": "node scripts/test-widget.js",
     "deploy": "pnpm run build:cdn && echo 'Widget built for CDN deployment'",
+    "deploy:prod": "NODE_ENV=production pnpm run build:cdn && echo 'Widget built for production deployment'",
+    "deploy:staging": "NODE_ENV=staging pnpm run build:cdn && echo 'Widget built for staging deployment'",
     "version": "node scripts/version.js"
   },
   "keywords": [

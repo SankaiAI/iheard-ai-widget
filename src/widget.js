@@ -3851,19 +3851,27 @@ Make sure your voice assistant server is running with: python main.py dev`);
 
   // Get the appropriate text agent URL based on environment
   function getTextAgentUrl() {
-    // Check for explicit configuration first
+    // Priority 1: Check for explicit window configuration (highest priority)
     if (window.iHeardConfig && window.iHeardConfig.textAgentUrl) {
+      console.log('🎯 Using explicit configuration:', window.iHeardConfig.textAgentUrl);
       return window.iHeardConfig.textAgentUrl;
     }
 
-    // Check for URL parameter override (useful for testing)
+    // Priority 2: Check for Cloudflare environment variable (injected at build time)
+    if (typeof window.IHEARD_TEXT_AGENT_URL !== 'undefined' && window.IHEARD_TEXT_AGENT_URL) {
+      console.log('☁️ Using Cloudflare environment variable:', window.IHEARD_TEXT_AGENT_URL);
+      return window.IHEARD_TEXT_AGENT_URL;
+    }
+
+    // Priority 3: Check for URL parameter override (useful for testing)
     const urlParams = new URLSearchParams(window.location.search);
     const paramUrl = urlParams.get('textAgentUrl');
     if (paramUrl) {
+      console.log('🔗 Using URL parameter override:', paramUrl);
       return paramUrl;
     }
 
-    // Auto-detect based on environment
+    // Priority 4: Auto-detect based on environment
     const hostname = window.location.hostname;
     
     // Local development environments
@@ -3872,8 +3880,8 @@ Make sure your voice assistant server is running with: python main.py dev`);
       return 'http://localhost:8080';
     }
     
-    // Production environment - use Railway deployment
-    console.log('🌐 Detected production environment - using Railway text agent');
+    // Priority 5: Production fallback - use Railway deployment
+    console.log('🌐 Using production fallback - Railway text agent');
     return 'https://iheard-ai-text-agent-server-production.up.railway.app';
   }
 

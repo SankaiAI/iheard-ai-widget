@@ -176,14 +176,14 @@
     <div class="test-container">
         <div class="header">
             <h1>☁️ iHeardAI Voice Agent Widget</h1>
-            <p>CLOUD Testing Environment (uses Railway production server)</p>
+            <p>SOURCE Testing Environment (uses src/widget.js with Railway production server)</p>
         </div>
         
         <div class="test-info">
             <h3>🧪 Test Instructions</h3>
-            <p>This page tests the widget from CDN with the CLOUD voice agent server on Railway.</p>
+            <p>This page tests the widget from source file with the CLOUD voice agent server on Railway.</p>
             <ul>
-                <li><strong>Step 1:</strong> Widget loads from Cloudflare CDN (not local file)</li>
+                <li><strong>Step 1:</strong> Widget loads from src/widget.js (source file)</li>
                 <li><strong>Step 2:</strong> Voice server calls go to Railway production server</li>
                 <li><strong>Step 3:</strong> Look for the widget in the bottom-right corner</li>
                 <li><strong>Step 4:</strong> Click the widget to open the chat interface</li>
@@ -238,15 +238,18 @@
     <!-- Load LiveKit client first -->
     <script src="https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js" onload="console.log('✅ LiveKit script loaded from HTML'); console.log('Available LiveKit objects:', {LiveKit: typeof window.LiveKit, livekit: typeof window.livekit, LiveKitClient: typeof window.LiveKitClient, livekitClient: typeof window.livekitClient}); console.log('All window keys with live:', Object.keys(window).filter(k => k.toLowerCase().includes('live')));" onerror="console.error('❌ Failed to load LiveKit from HTML')"></script>
     
-    <!-- Load the iHeardAI Widget from CDN -->
-    <script src="https://iheard-ai-widget.pages.dev/widget.js?apiKey=ihd_test-key&agentId=test-agent" 
-            onerror="console.error('❌ Failed to load widget from CDN:', this.src); 
-                     console.log('🔄 Trying alternative path...'); 
-                     const altScript = document.createElement('script'); 
-                     altScript.src = 'https://iheard-ai-widget.pages.dev/src/widget.js?apiKey=ihd_test-key&agentId=test-agent'; 
-                     altScript.onerror = () => console.error('❌ Alternative path also failed'); 
-                     document.head.appendChild(altScript);"
-            onload="console.log('✅ Widget loaded from CDN:', this.src)"></script>
+    <!-- Load the iHeardAI Widget from source file -->
+    <script>
+        // Check if Cloudflare environment variable is available
+        if (typeof window.IHEARD_TEXT_AGENT_URL !== 'undefined') {
+            console.log('☁️ Cloudflare environment variable detected:', window.IHEARD_TEXT_AGENT_URL);
+        } else {
+            console.log('🔍 No Cloudflare environment variable found - widget will use auto-detection');
+        }
+    </script>
+    <script src="src/widget.js?apiKey=ihd_test-key&agentId=test-agent" 
+            onerror="console.error('❌ Failed to load widget from source:', this.src);"
+            onload="console.log('✅ Widget loaded from source file:', this.src)"></script>
 
     <script>
         // Test page JavaScript

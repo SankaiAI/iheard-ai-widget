@@ -49,6 +49,49 @@ function ensureBuildDir() {
   return buildPath;
 }
 
+// Inject environment variables into the widget source
+function injectEnvironmentVariables(source) {
+  console.log('🔧 Injecting environment variables...');
+  
+  // Get environment variables
+  const TEXT_AGENT_URL = process.env.IHEARD_TEXT_AGENT_URL || process.env.TEXT_AGENT_URL;
+  const NODE_ENV = process.env.NODE_ENV || 'production';
+  
+  // Create the environment variables injection
+  let envInjection = '// Environment variables injected at build time\n';
+  envInjection += `// Build Date: ${new Date().toISOString()}\n`;
+  envInjection += `// Environment: ${NODE_ENV}\n`;
+  
+  if (TEXT_AGENT_URL) {
+    envInjection += `window.IHEARD_TEXT_AGENT_URL = '${TEXT_AGENT_URL}';\n`;
+    console.log('✅ Injecting TEXT_AGENT_URL:', TEXT_AGENT_URL);
+  } else {
+    console.log('ℹ️ No TEXT_AGENT_URL provided - using auto-detection fallback');
+  }
+  
+  envInjection += `window.IHEARD_BUILD_ENV = '${NODE_ENV}';\n`;
+  envInjection += `window.IHEARD_BUILD_TIME = '${new Date().toISOString()}';\n`;
+  envInjection += '\n';
+  
+  // Inject at the beginning of the file, after any initial comments
+  const lines = source.split('\n');
+  let insertIndex = 0;
+  
+  // Skip initial comment blocks
+  while (insertIndex < lines.length && (
+    lines[insertIndex].trim().startsWith('//') || 
+    lines[insertIndex].trim().startsWith('/*') ||
+    lines[insertIndex].trim() === ''
+  )) {
+    insertIndex++;
+  }
+  
+  // Insert environment variables
+  lines.splice(insertIndex, 0, envInjection);
+  
+  return lines.join('\n');
+}
+
 // Read and minify widget
 async function buildWidget() {
   console.log('📦 Building widget for CDN...');
@@ -61,7 +104,10 @@ async function buildWidget() {
     process.exit(1);
   }
   
-  const source = fs.readFileSync(sourcePath, 'utf8');
+  let source = fs.readFileSync(sourcePath, 'utf8');
+  
+  // Inject environment variables at build time
+  source = injectEnvironmentVariables(source);
   
   // Generate file hash for cache busting
   const hash = crypto.createHash('md5').update(source).digest('hex').substring(0, 8);
