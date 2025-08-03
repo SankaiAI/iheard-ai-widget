@@ -1155,13 +1155,13 @@ Make sure your voice assistant server is running with: python main.py dev`);
                 }
                 
                 // Use the new streaming function - no more handleTranscriptionSegment
-                displayUserMessage(data.text, data.final !== false);
+                displayUserMessage(data.text, data.final === true);
               }
               // Handle assistant speech transcription
               else if (data.speaker === 'Assistant') {
                 console.log(`🤖 Assistant transcription: ${data.text} (final: ${data.final})`);
                 // Use the new streaming function - no more handleTranscriptionSegment
-                displayAssistantMessage(data.text, data.final !== false);
+                displayAssistantMessage(data.text, data.final === true);
               }
               return;
             }
@@ -3768,40 +3768,113 @@ Make sure your voice assistant server is running with: python main.py dev`);
   }
 
   // Simulate AI response (replace with real API call)
-  function simulateAIResponse(userMessage) {
+  async function simulateAIResponse(userMessage) {
     isConnecting = true;
 
     const typingIndicator = showTypingIndicator();
 
-    // Simulate API delay
-    setTimeout(() => {
+    try {
+      // Call the text agent API - supports both production and local development
+      const textAgentUrl = getTextAgentUrl();
+      const response = await fetch(`${textAgentUrl}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          session_id: getOrCreateSessionId(),
+          user_metadata: {
+            widget_version: '1.0.0',
+            agent_id: currentAgentId,
+            timestamp: Date.now()
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
       // Remove typing indicator
       if (typingIndicator && typingIndicator.parentNode) {
         typingIndicator.parentNode.removeChild(typingIndicator);
       }
 
-      // Generate response based on user message
-      let response = '';
-      const lowerMessage = userMessage.toLowerCase();
-      
-      if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-        response = `Hello! I'm ${widgetConfig.agentName}. How can I help you today?`;
-      } else if (lowerMessage.includes('product') || lowerMessage.includes('item')) {
-        response = `I'd be happy to help you find products! What type of items are you looking for?`;
-      } else if (lowerMessage.includes('price') || lowerMessage.includes('cost')) {
-        response = `I can help you with pricing information. Could you tell me which product you're interested in?`;
-      } else if (lowerMessage.includes('shipping') || lowerMessage.includes('delivery')) {
-        response = `Our shipping options include standard delivery (3-5 days) and express delivery (1-2 days). What would you like to know?`;
-      } else if (lowerMessage.includes('thank')) {
-        response = `You're welcome! Is there anything else I can help you with?`;
+      if (result.success) {
+        // Add the agent's response
+        addAgentMessage(result.message);
+        
+        // Handle special cases
+        if (result.escalation_needed) {
+          console.log('🎫 Support escalation detected');
+          if (result.ticket_id) {
+            console.log(`🎫 Ticket created: ${result.ticket_id}`);
+          }
+        }
+        
+        // Log intent for debugging
+        console.log(`📊 Message intent: ${result.intent || 'unknown'}`);
+        
       } else {
-        response = `Thanks for your message: "${userMessage}". I'm here to help you with product recommendations, pricing, shipping, and any other questions you might have. What would you like to know?`;
+        // Handle API error
+        console.error('❌ Text agent error:', result.error);
+        addAgentMessage("I'm sorry, I'm having trouble processing your message right now. Please try again in a moment.");
       }
 
-      addAgentMessage(response);
+    } catch (error) {
+      console.error('❌ Failed to connect to text agent:', error);
       
-      isConnecting = false;
-    }, 1500 + Math.random() * 1000); // Random delay between 1.5-2.5 seconds
+      // Remove typing indicator
+      if (typingIndicator && typingIndicator.parentNode) {
+        typingIndicator.parentNode.removeChild(typingIndicator);
+      }
+      
+      // Fallback response
+      addAgentMessage("I'm sorry, I'm having connection issues right now. Please try again in a moment, or you can try the voice chat by clicking the call button.");
+    }
+    
+    isConnecting = false;
+  }
+
+  // Get or create a session ID for the user
+  function getOrCreateSessionId() {
+    let sessionId = localStorage.getItem('iheard-session-id');
+    if (!sessionId) {
+      sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2);
+      localStorage.setItem('iheard-session-id', sessionId);
+    }
+    return sessionId;
+  }
+
+  // Get the appropriate text agent URL based on environment
+  function getTextAgentUrl() {
+    // Check for explicit configuration first
+    if (window.iHeardConfig && window.iHeardConfig.textAgentUrl) {
+      return window.iHeardConfig.textAgentUrl;
+    }
+
+    // Check for URL parameter override (useful for testing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramUrl = urlParams.get('textAgentUrl');
+    if (paramUrl) {
+      return paramUrl;
+    }
+
+    // Auto-detect based on environment
+    const hostname = window.location.hostname;
+    
+    // Local development environments
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.endsWith('.local')) {
+      console.log('🔧 Detected local environment - using localhost text agent');
+      return 'http://localhost:8080';
+    }
+    
+    // Production environment - use Railway deployment
+    console.log('🌐 Detected production environment - using Railway text agent');
+    return 'https://iheard-ai-text-agent-server-production.up.railway.app';
   }
 
   // Type welcome message with animation
