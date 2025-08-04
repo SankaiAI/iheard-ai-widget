@@ -5,6 +5,35 @@ const path = require('path');
 const crypto = require('crypto');
 const { minify } = require('terser');
 
+// Load environment variables from .env file
+function loadEnvFile() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const envLines = envContent.split('\n');
+    
+    for (const line of envLines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, ...valueParts] = trimmedLine.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=').trim();
+          // Only set if not already set in process.env
+          if (!process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+      }
+    }
+    console.log('✅ Environment variables loaded from .env file');
+  } else {
+    console.log('ℹ️ No .env file found, using system environment variables');
+  }
+}
+
+// Load .env file at startup
+loadEnvFile();
+
 // Copy directory recursively
 function copyDirectory(src, dest) {
   if (!fs.existsSync(dest)) {
@@ -53,20 +82,35 @@ function ensureBuildDir() {
 function injectEnvironmentVariables(source) {
   console.log('🔧 Injecting environment variables...');
   
-  // Get environment variables
-  const TEXT_AGENT_URL = process.env.IHEARD_TEXT_AGENT_URL || process.env.TEXT_AGENT_URL;
+  // Get environment variables - try multiple naming conventions
+  const TEXT_AGENT_URL = process.env.TEXT_AGENT_URL || process.env.IHEARD_TEXT_AGENT_URL;
+  const VOICE_AGENT_URL = process.env.VOICE_AGENT_URL || process.env.IHEARD_VOICE_AGENT_URL;
+  const WIDGET_URL = process.env.WIDGET_URL || process.env.IHEARD_WIDGET_URL;
   const NODE_ENV = process.env.NODE_ENV || 'production';
   
   // Create the environment variables injection
   let envInjection = '// Environment variables injected at build time\n';
   envInjection += `// Build Date: ${new Date().toISOString()}\n`;
   envInjection += `// Environment: ${NODE_ENV}\n`;
+  envInjection += '\n';
   
   if (TEXT_AGENT_URL) {
     envInjection += `window.IHEARD_TEXT_AGENT_URL = '${TEXT_AGENT_URL}';\n`;
     console.log('✅ Injecting TEXT_AGENT_URL:', TEXT_AGENT_URL);
   } else {
-    console.log('ℹ️ No TEXT_AGENT_URL provided - using auto-detection fallback');
+    console.log('⚠️ No TEXT_AGENT_URL found - widget will use auto-detection fallback');
+  }
+  
+  if (VOICE_AGENT_URL) {
+    envInjection += `window.IHEARD_VOICE_AGENT_URL = '${VOICE_AGENT_URL}';\n`;
+    console.log('✅ Injecting VOICE_AGENT_URL:', VOICE_AGENT_URL);
+  } else {
+    console.log('⚠️ No VOICE_AGENT_URL found - widget will use auto-detection fallback');
+  }
+  
+  if (WIDGET_URL) {
+    envInjection += `window.IHEARD_WIDGET_URL = '${WIDGET_URL}';\n`;
+    console.log('✅ Injecting WIDGET_URL:', WIDGET_URL);
   }
   
   envInjection += `window.IHEARD_BUILD_ENV = '${NODE_ENV}';\n`;
