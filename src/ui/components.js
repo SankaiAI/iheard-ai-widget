@@ -476,7 +476,7 @@ export function updateWidgetAppearance(widget) {
   }
   
   // Update input placeholder
-  const input = widget.querySelector('.iheard-message-input');
+  const input = widget.querySelector('.iheard-input');
   if (input && widgetConfig.inputPlaceholder) {
     input.placeholder = widgetConfig.inputPlaceholder;
     console.log('💬 Input placeholder updated to:', widgetConfig.inputPlaceholder);
