@@ -170,7 +170,7 @@ export async function fetchRemoteConfig(agentId, silent = false) {
  * @param {Object} remoteConfig - Remote configuration object
  * @returns {boolean} Whether configuration was updated
  */
-export function applyRemoteConfig(remoteConfig) {
+export function applyRemoteConfig(remoteConfig, isInitialLoad = false) {
   if (!remoteConfig) return false;
 
   const oldConfig = { ...widgetConfig };
@@ -212,13 +212,16 @@ export function applyRemoteConfig(remoteConfig) {
   );
 
   console.log('🔍 Appearance change detection:', {
+    isInitialLoad: isInitialLoad,
     useDefaultAppearance: { old: oldConfig.useDefaultAppearance, new: widgetConfig.useDefaultAppearance, changed: oldConfig.useDefaultAppearance !== widgetConfig.useDefaultAppearance },
     chatBackgroundColor: { old: oldConfig.chatBackgroundColor, new: widgetConfig.chatBackgroundColor, changed: oldConfig.chatBackgroundColor !== widgetConfig.chatBackgroundColor },
     glassEffect: { old: oldConfig.glassEffect, new: widgetConfig.glassEffect, changed: oldConfig.glassEffect !== widgetConfig.glassEffect },
-    hasAppearanceChanges: hasAppearanceChanges
+    hasAppearanceChanges: hasAppearanceChanges,
+    willRecreate: hasAppearanceChanges && !isInitialLoad
   });
 
-  return hasAppearanceChanges;
+  // Don't recreate on initial load, only on actual runtime changes
+  return hasAppearanceChanges && !isInitialLoad;
 }
 
 /**

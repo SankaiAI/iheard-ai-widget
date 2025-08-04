@@ -29,7 +29,8 @@ export async function loadAgentConfig(agentId, silent = false) {
   try {
     const remoteConfig = await fetchRemoteConfig(agentId, silent);
     if (remoteConfig) {
-      const hasSignificantChanges = applyRemoteConfig(remoteConfig);
+      // Mark as initial load to prevent recreation on first configuration load
+      const hasSignificantChanges = applyRemoteConfig(remoteConfig, true);
       
       if (hasSignificantChanges) {
         // Significant appearance changes require widget recreation
