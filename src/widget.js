@@ -14,7 +14,18 @@
   // Function to dynamically import ES6 modules
   async function loadModules() {
     try {
-      // Load all modules in parallel
+      // Get the base URL from the current script
+      const currentScript = document.currentScript || 
+        document.querySelector('script[src*="widget.js"]') ||
+        Array.from(document.scripts).find(s => s.src.includes('widget.js'));
+      
+      let baseUrl = '';
+      if (currentScript && currentScript.src) {
+        const scriptUrl = new URL(currentScript.src);
+        baseUrl = scriptUrl.origin + scriptUrl.pathname.replace('/widget.js', '');
+      }
+      
+      // Load all modules in parallel with absolute URLs
       const [
         stylesModule,
         coreModule,
@@ -23,12 +34,12 @@
         apiModule,
         utilsModule
       ] = await Promise.all([
-        import('./styles/index.js'),
-        import('./core/index.js'),
-        import('./voice/index.js'),
-        import('./ui/index.js'),
-        import('./api/index.js'),
-        import('./utils/index.js')
+        import(`${baseUrl}/styles/index.js`),
+        import(`${baseUrl}/core/index.js`),
+        import(`${baseUrl}/voice/index.js`),
+        import(`${baseUrl}/ui/index.js`),
+        import(`${baseUrl}/api/index.js`),
+        import(`${baseUrl}/utils/index.js`)
       ]);
 
       // Store modules globally for access
