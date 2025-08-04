@@ -11,7 +11,8 @@ import {
   fetchRemoteConfig,
   applyRemoteConfig,
   updateConfig,
-  getAgentIdFromUrl
+  getAgentIdFromUrl,
+  getInitialConfig
 } from './config.js';
 
 // Re-export for external use
@@ -45,7 +46,8 @@ export const {
   setCurrentAssistantMessage,
   setCurrentAgentId,
   setConfigPollingInterval,
-  resetState
+  resetState,
+  setApiCredentials
 } = stateModule;
 
 // Also export stateModule for internal use
@@ -75,6 +77,18 @@ export async function initializeConfiguration() {
     // Load default configuration
     console.log('🔄 Calling resetConfig...');
     _resetConfig();
+    
+    // Extract API credentials from script parameters
+    console.log('🔍 Extracting initial configuration...');
+    const initialConfig = getInitialConfig();
+    
+    // Set API credentials if available
+    if (initialConfig.apiKey || initialConfig.agentId || initialConfig.serverUrl) {
+      console.log('🔐 Setting API credentials...');
+      setApiCredentials(initialConfig.apiKey, initialConfig.agentId, initialConfig.serverUrl);
+    } else {
+      console.log('⚠️ No API credentials found in URL parameters');
+    }
     
     console.log('✅ Core configuration initialized');
   } catch (error) {
