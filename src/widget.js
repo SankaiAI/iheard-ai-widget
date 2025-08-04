@@ -22,7 +22,9 @@
       let baseUrl = '';
       if (currentScript && currentScript.src) {
         const scriptUrl = new URL(currentScript.src);
-        baseUrl = scriptUrl.origin + scriptUrl.pathname.replace('/widget.js', '');
+        // Remove query parameters and get clean base URL
+        const cleanPath = scriptUrl.pathname.replace('/widget.js', '').replace('/widget.min.js', '');
+        baseUrl = scriptUrl.origin + cleanPath;
       }
       
       // Load all modules in parallel with absolute URLs
