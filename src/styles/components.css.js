@@ -142,6 +142,25 @@ export function createComponentStyles() {
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
+    }
+
+    .iheard-chat-avatar-wrapper {
+      position: relative;
+      padding: 3px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd, #ff7675);
+      background-size: 300% 300%;
+      animation: gradientShift 3s ease-in-out infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     .iheard-chat-avatar img {
@@ -149,6 +168,7 @@ export function createComponentStyles() {
       height: 32px;
       border-radius: 50%;
       object-fit: cover;
+      background: white;
     }
 
     .iheard-chat-avatar-placeholder {

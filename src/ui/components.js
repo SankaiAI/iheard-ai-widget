@@ -191,18 +191,23 @@ function createAvatar() {
   const avatarDiv = document.createElement('div');
   avatarDiv.className = 'iheard-chat-avatar';
 
+  // Create gradient wrapper
+  const gradientWrapper = document.createElement('div');
+  gradientWrapper.className = 'iheard-chat-avatar-wrapper';
+
   if (widgetConfig.avatar) {
     const img = document.createElement('img');
     img.src = widgetConfig.avatar;
     img.alt = widgetConfig.agentName;
-    avatarDiv.appendChild(img);
+    gradientWrapper.appendChild(img);
   } else {
     const placeholder = document.createElement('div');
     placeholder.className = 'iheard-chat-avatar-placeholder';
     placeholder.textContent = widgetConfig.agentName.charAt(0).toUpperCase();
-    avatarDiv.appendChild(placeholder);
+    gradientWrapper.appendChild(placeholder);
   }
 
+  avatarDiv.appendChild(gradientWrapper);
   return avatarDiv;
 }
 
@@ -515,6 +520,10 @@ export function updateWidgetAppearance(widget) {
     // Clear existing avatar content
     avatarContainer.innerHTML = '';
     
+    // Create gradient wrapper
+    const gradientWrapper = document.createElement('div');
+    gradientWrapper.className = 'iheard-chat-avatar-wrapper';
+    
     if (widgetConfig.avatar || widgetConfig.avatarUrl) {
       const avatarUrl = widgetConfig.avatar || widgetConfig.avatarUrl;
       const img = document.createElement('img');
@@ -526,18 +535,20 @@ export function updateWidgetAppearance(widget) {
         const placeholder = document.createElement('div');
         placeholder.className = 'iheard-chat-avatar-placeholder';
         placeholder.textContent = widgetConfig.agentName.charAt(0).toUpperCase();
-        avatarContainer.appendChild(placeholder);
+        gradientWrapper.appendChild(placeholder);
       };
-      avatarContainer.appendChild(img);
+      gradientWrapper.appendChild(img);
       console.log('👤 Avatar updated to:', avatarUrl);
     } else {
       // Use placeholder
       const placeholder = document.createElement('div');
       placeholder.className = 'iheard-chat-avatar-placeholder';
       placeholder.textContent = widgetConfig.agentName.charAt(0).toUpperCase();
-      avatarContainer.appendChild(placeholder);
+      gradientWrapper.appendChild(placeholder);
       console.log('👤 Avatar set to placeholder:', widgetConfig.agentName.charAt(0));
     }
+    
+    avatarContainer.appendChild(gradientWrapper);
   }
   
   // Update widget style classes
