@@ -406,24 +406,170 @@ export function hideCCButton() {
 export function updateWidgetAppearance(widget) {
   console.log('🎨 Widget appearance updated from configuration');
   
+  // Update widget position
+  if (widget) {
+    // Reset position styles
+    widget.style.bottom = '';
+    widget.style.top = '';
+    widget.style.left = '';
+    widget.style.right = '';
+    
+    // Remove old position classes
+    widget.className = widget.className.replace(/position-\S+/g, '').trim();
+    
+    // Apply new position
+    if (widgetConfig.position.includes('bottom')) {
+      widget.style.bottom = '20px';
+    } else {
+      widget.style.top = '20px';
+    }
+    
+    if (widgetConfig.position.includes('right')) {
+      widget.style.right = '20px';
+    } else {
+      widget.style.left = '20px';
+    }
+    
+    // Add new position class
+    widget.classList.add(`position-${widgetConfig.position}`);
+    
+    console.log('📍 Widget position updated to:', widgetConfig.position);
+  }
+  
+  // Update widget button appearance
   const button = widget.querySelector('.iheard-widget-button');
   if (button) {
+    // Update button colors
     if (widgetConfig.gradientEnabled) {
       button.style.background = `linear-gradient(${widgetConfig.gradientDirection}, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
     } else {
       button.style.background = widgetConfig.primaryColor;
     }
+    
+    console.log('🎨 Button colors updated - Gradient:', widgetConfig.gradientEnabled, 'Primary:', widgetConfig.primaryColor);
   }
 
+  // Update chat interface appearance
   const chatInterface = widget.querySelector('.iheard-chat-interface');
   if (chatInterface) {
     if (widgetConfig.useDefaultAppearance) {
       chatInterface.classList.add('default-appearance');
+      // Remove custom background when using default appearance
+      chatInterface.style.background = '';
     } else {
       chatInterface.classList.remove('default-appearance');
       if (widgetConfig.chatBackgroundColor && widgetConfig.chatBackgroundColor !== 'transparent') {
         chatInterface.style.background = widgetConfig.chatBackgroundColor;
+      } else {
+        chatInterface.style.background = '';
       }
     }
+    
+    // Update glass effect
+    if (widgetConfig.glassEffect) {
+      chatInterface.classList.add('glass-effect');
+    } else {
+      chatInterface.classList.remove('glass-effect');
+    }
+    
+    console.log('🏠 Chat background updated:', widgetConfig.chatBackgroundColor, 'Glass effect:', widgetConfig.glassEffect);
   }
+  
+  // Update input placeholder
+  const input = widget.querySelector('.iheard-message-input');
+  if (input && widgetConfig.inputPlaceholder) {
+    input.placeholder = widgetConfig.inputPlaceholder;
+    console.log('💬 Input placeholder updated to:', widgetConfig.inputPlaceholder);
+  }
+  
+  // Update chat title
+  const chatTitle = widget.querySelector('.iheard-chat-title');
+  if (chatTitle && widgetConfig.chatTitle) {
+    chatTitle.textContent = widgetConfig.chatTitle;
+    console.log('🏷️ Chat title updated to:', widgetConfig.chatTitle);
+  }
+  
+  // Update button text visibility and content
+  const buttonText = widget.querySelector('.iheard-button-text');
+  if (buttonText) {
+    if (widgetConfig.showButtonText && widgetConfig.buttonText) {
+      buttonText.textContent = widgetConfig.buttonText;
+      buttonText.style.display = '';
+      console.log('🔘 Button text updated to:', widgetConfig.buttonText);
+    } else {
+      buttonText.style.display = 'none';
+      console.log('🔘 Button text hidden');
+    }
+  }
+  
+  // Update welcome message (if displayed in UI)
+  const welcomeMsg = widget.querySelector('.iheard-welcome-message');
+  if (welcomeMsg && widgetConfig.welcomeMessage) {
+    welcomeMsg.textContent = widgetConfig.welcomeMessage;
+    console.log('👋 Welcome message updated to:', widgetConfig.welcomeMessage);
+  }
+  
+  // Update avatar (if displayed in UI)
+  const avatar = widget.querySelector('.iheard-avatar');
+  if (avatar && widgetConfig.avatar) {
+    if (avatar.tagName === 'IMG') {
+      avatar.src = widgetConfig.avatar;
+    } else {
+      avatar.style.backgroundImage = `url(${widgetConfig.avatar})`;
+    }
+    console.log('👤 Avatar updated to:', widgetConfig.avatar);
+  }
+  
+  // Update widget style classes
+  if (widget && widgetConfig.widgetStyle) {
+    // Remove old widget style classes
+    widget.className = widget.className.replace(/widget-style-\S+/g, '').trim();
+    // Add new widget style class
+    widget.classList.add(`widget-style-${widgetConfig.widgetStyle}`);
+    console.log('🎭 Widget style updated to:', widgetConfig.widgetStyle);
+  }
+  
+  // Update enabled/disabled state visibility
+  if (widgetConfig.isEnabled === false) {
+    widget.style.display = 'none';
+    console.log('🚫 Widget hidden - disabled');
+  } else {
+    widget.style.display = '';
+    console.log('✅ Widget shown - enabled');
+  }
+  
+  // Update active state (affects functionality but not visibility)
+  if (widgetConfig.isActive) {
+    widget.classList.add('active');
+    console.log('🟢 Widget marked as active');
+  } else {
+    widget.classList.remove('active');
+    console.log('⚪ Widget marked as inactive');
+  }
+  
+  // Update voice/chat enabled states (affects button visibility)
+  const voiceButton = widget.querySelector('.iheard-voice-button, .iheard-call-button');
+  const chatButton = widget.querySelector('.iheard-chat-button, .iheard-widget-button');
+  
+  if (voiceButton) {
+    if (widgetConfig.voiceEnabled) {
+      voiceButton.style.display = '';
+      console.log('🎤 Voice button shown');
+    } else {
+      voiceButton.style.display = 'none';
+      console.log('🎤 Voice button hidden');
+    }
+  }
+  
+  if (chatButton) {
+    if (widgetConfig.chatEnabled) {
+      chatButton.style.display = '';
+      console.log('💬 Chat button shown');
+    } else {
+      chatButton.style.display = 'none';
+      console.log('💬 Chat button hidden');
+    }
+  }
+  
+  console.log('✨ All widget appearance updates completed');
 }
