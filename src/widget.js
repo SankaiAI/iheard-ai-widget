@@ -16,7 +16,9 @@
     try {
       // Get the base URL from the current script
       const currentScript = document.currentScript || 
+        document.querySelector('script[src*="widget.min.js"]') ||
         document.querySelector('script[src*="widget.js"]') ||
+        Array.from(document.scripts).find(s => s.src.includes('widget.min.js')) ||
         Array.from(document.scripts).find(s => s.src.includes('widget.js'));
       
       let baseUrl = '';
@@ -25,6 +27,18 @@
         // Remove query parameters and get clean base URL
         const cleanPath = scriptUrl.pathname.replace('/widget.js', '').replace('/widget.min.js', '');
         baseUrl = scriptUrl.origin + cleanPath;
+        console.log('🔧 Widget script detection:', {
+          currentScript: currentScript.src,
+          origin: scriptUrl.origin,
+          pathname: scriptUrl.pathname,
+          cleanPath: cleanPath,
+          baseUrl: baseUrl
+        });
+      } else {
+        console.error('❌ Could not detect widget script URL');
+        // Fallback to hardcoded Cloudflare URL
+        baseUrl = 'https://iheard-ai-widget.pages.dev';
+        console.log('🔧 Using fallback baseUrl:', baseUrl);
       }
       
       // Load all modules in parallel with absolute URLs
