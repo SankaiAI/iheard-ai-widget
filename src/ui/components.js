@@ -490,7 +490,7 @@ export function updateWidgetAppearance(widget) {
   }
   
   // Update button text visibility and content
-  const buttonText = widget.querySelector('.iheard-button-text');
+  const buttonText = widget.querySelector('.button-text');
   if (buttonText) {
     if (widgetConfig.showButtonText && widgetConfig.buttonText) {
       buttonText.textContent = widgetConfig.buttonText;
@@ -510,14 +510,34 @@ export function updateWidgetAppearance(widget) {
   }
   
   // Update avatar (if displayed in UI)
-  const avatar = widget.querySelector('.iheard-avatar');
-  if (avatar && widgetConfig.avatar) {
-    if (avatar.tagName === 'IMG') {
-      avatar.src = widgetConfig.avatar;
+  const avatarContainer = widget.querySelector('.iheard-chat-avatar');
+  if (avatarContainer) {
+    // Clear existing avatar content
+    avatarContainer.innerHTML = '';
+    
+    if (widgetConfig.avatar || widgetConfig.avatarUrl) {
+      const avatarUrl = widgetConfig.avatar || widgetConfig.avatarUrl;
+      const img = document.createElement('img');
+      img.src = avatarUrl;
+      img.alt = widgetConfig.agentName;
+      img.onerror = () => {
+        // Fallback to placeholder if image fails to load
+        img.style.display = 'none';
+        const placeholder = document.createElement('div');
+        placeholder.className = 'iheard-chat-avatar-placeholder';
+        placeholder.textContent = widgetConfig.agentName.charAt(0).toUpperCase();
+        avatarContainer.appendChild(placeholder);
+      };
+      avatarContainer.appendChild(img);
+      console.log('👤 Avatar updated to:', avatarUrl);
     } else {
-      avatar.style.backgroundImage = `url(${widgetConfig.avatar})`;
+      // Use placeholder
+      const placeholder = document.createElement('div');
+      placeholder.className = 'iheard-chat-avatar-placeholder';
+      placeholder.textContent = widgetConfig.agentName.charAt(0).toUpperCase();
+      avatarContainer.appendChild(placeholder);
+      console.log('👤 Avatar set to placeholder:', widgetConfig.agentName.charAt(0));
     }
-    console.log('👤 Avatar updated to:', widgetConfig.avatar);
   }
   
   // Update widget style classes

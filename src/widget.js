@@ -139,6 +139,13 @@
     try {
       console.log('🔄 Initializing modular widget...');
 
+      // Check if widget already exists and remove it to prevent duplicates
+      const existingWidget = document.getElementById('iheard-ai-widget');
+      if (existingWidget) {
+        console.log('🧹 Removing existing widget to prevent duplicates');
+        existingWidget.remove();
+      }
+
       // Wait for modules to load
       const modules = await loadModules();
       
@@ -342,6 +349,9 @@
           const widget = document.getElementById('iheard-ai-widget');
           if (widget) {
             window.iHeardModules.ui.updateWidgetAppearance(widget);
+            console.log('✅ Widget appearance updated successfully');
+          } else {
+            console.warn('⚠️ Widget element not found for appearance update');
           }
         }
         return true;
