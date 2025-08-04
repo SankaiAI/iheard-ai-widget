@@ -2,44 +2,49 @@
 node_modules/
 pnpm-lock.yaml
 
-# Build outputs (keep dist/ for Cloudflare deployment)
+# Build outputs
 build/
+dist/
 
-# Environment variables
+# Environment variables (Railway handles these via dashboard)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Documentation files (not needed for deployment)
+# Documentation files (not needed for Railway deployment)
 *.md
 !README.md
 CLOUDFLARE_ENV_SETUP.md
 CUSTOMER_EMBEDDING_GUIDE.md
 DEPLOYMENT_STATUS_CHECK.md
+ENVIRONMENT_SETUP.md
 SECURITY_BEST_PRACTICES.md
 SECURITY_OPTIONS.md
 SETUP_GUIDE.md
 SUPABASE_SECURITY_SETUP.md
 .cloudflare-files
 
-# Test files (not needed for deployment)
+# Test files (not needed for Railway deployment)
 test-*.html
 test-integration.html
 test-cloud-voice-integration.html
 test-local-voice-integration.html
 
-# Development scripts (not needed for deployment)
+# Development scripts (not needed for Railway deployment)
 scripts/dev-server.js
 scripts/test-widget.js
 scripts/load-env.js
 
-# Template files (not needed for deployment)
+# Template files (not needed for Railway deployment)
 src/widget.template.js
 
-# Public folder (redundant if using CDN)
-public/
+# Public folder content (Railway can serve static files directly)
+public/livekit-client.umd.js
+
+# Railway specific
+.railway/
 
 # Logs
 npm-debug.log*
@@ -124,6 +129,14 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# Cloudflare
+# Cloudflare specific (not needed for Railway)
 .wrangler/
-wrangler.toml 
+wrangler.toml
+functions/
+
+# Railway deployment optimizations
+# Keep only essential files for Railway deployment:
+# - package.json (for dependencies)
+# - src/ (source code)
+# - scripts/build.js and scripts/build-cdn.js (for Railway build)
+# - dist/ will be generated during Railway build process
