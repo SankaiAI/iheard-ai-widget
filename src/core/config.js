@@ -211,6 +211,13 @@ export function applyRemoteConfig(remoteConfig) {
     oldConfig.glassEffect !== widgetConfig.glassEffect
   );
 
+  console.log('🔍 Appearance change detection:', {
+    useDefaultAppearance: { old: oldConfig.useDefaultAppearance, new: widgetConfig.useDefaultAppearance, changed: oldConfig.useDefaultAppearance !== widgetConfig.useDefaultAppearance },
+    chatBackgroundColor: { old: oldConfig.chatBackgroundColor, new: widgetConfig.chatBackgroundColor, changed: oldConfig.chatBackgroundColor !== widgetConfig.chatBackgroundColor },
+    glassEffect: { old: oldConfig.glassEffect, new: widgetConfig.glassEffect, changed: oldConfig.glassEffect !== widgetConfig.glassEffect },
+    hasAppearanceChanges: hasAppearanceChanges
+  });
+
   return hasAppearanceChanges;
 }
 
