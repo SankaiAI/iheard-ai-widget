@@ -2,11 +2,13 @@
 node_modules/
 pnpm-lock.yaml
 
-# Build outputs
+# Build outputs  
 build/
-dist/
 
-# Environment variables (Railway handles these via dashboard)
+# For Cloudflare deployment: Keep dist/ but exclude accumulating hash-versioned files
+dist/widget-[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9].min.js
+
+# Environment variables
 .env
 .env.local
 .env.development.local
@@ -99,7 +101,6 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -129,14 +130,11 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# Cloudflare specific (not needed for Railway)
+# Cloudflare Wrangler (not needed, using Pages)
 .wrangler/
 wrangler.toml
-functions/
 
-# Railway deployment optimizations
-# Keep only essential files for Railway deployment:
-# - package.json (for dependencies)
-# - src/ (source code)
-# - scripts/build.js and scripts/build-cdn.js (for Railway build)
-# - dist/ will be generated during Railway build process
+# Cloudflare deployment notes:
+# - dist/ folder is committed (contains built widget + modules)
+# - functions/ in dist/ is needed (Cloudflare Functions for config API)
+# - Only exclude hash-versioned widget files to prevent accumulation

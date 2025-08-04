@@ -1,0 +1,383 @@
+/**
+ * Component-specific CSS styles for iHeardAI Widget
+ * Button, header, messages, and UI component styles
+ */
+
+export function createComponentStyles() {
+  return `
+    /* Widget Button */
+    .iheard-widget-button {
+      background: var(--primary-color, #ee5cee);
+      border: none;
+      border-radius: 50px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+      outline: none;
+      user-select: none;
+    }
+
+    .iheard-widget-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .iheard-widget-button .button-text {
+      white-space: nowrap;
+    }
+
+    @media (max-width: 480px) {
+      .iheard-widget-button .button-text {
+        display: none !important;
+      }
+    }
+
+    /* Eye Logo Animation */
+    .iheard-eye-logo {
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .iheard-eye-logo::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: #333;
+      border-radius: 50%;
+      position: absolute;
+      animation: eyeBlink 3s infinite;
+    }
+
+    /* Chat Header */
+    .iheard-chat-header {
+      background: #ffffff;
+      border: none;
+      color: white;
+      padding: 0;
+      z-index: 10;
+      height: 70px;
+      box-sizing: border-box;
+      grid-area: header !important;
+      border-radius: 25px 25px 0 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: visible;
+    }
+
+    /* Default appearance styles */
+    .iheard-chat-header.default-appearance {
+      background: rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(10px);
+    }
+
+    .iheard-chat-header-rect {
+      background: rgba(0, 0, 0, 0.6) !important;
+      border-radius: 25px;
+      padding: 10px 38px;
+      margin: 15px 10px 10px 10px;
+      width: calc(100% - 20px);
+      height: auto;
+      max-width: 420px;
+      display: flex;
+      align-items: center;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .iheard-chat-header-rect:hover {
+      background: rgba(0, 0, 0, 0.9) !important;
+    }
+
+    .iheard-chat-header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      flex: 1;
+      padding: 0;
+    }
+
+    .iheard-chat-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: -15px;
+    }
+
+    .iheard-header-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .iheard-header-arrow:hover {
+      opacity: 1;
+    }
+
+    .iheard-header-arrow svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .iheard-chat-avatar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .iheard-chat-avatar img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .iheard-chat-avatar-placeholder {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .iheard-chat-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+      color: white;
+    }
+
+    .iheard-status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6b7280;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .iheard-status-indicator.connecting {
+      background: #f59e0b;
+      animation: pulse 1.5s ease-in-out infinite alternate;
+    }
+
+    .iheard-status-indicator.connected {
+      background: #10b981;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 1);
+      animation: pulse-connected 2s infinite;
+    }
+
+    .iheard-status-text {
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* Call Section */
+    .iheard-call-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* CC Toggle Button */
+    .iheard-cc-btn {
+      background: rgba(107, 114, 128, 0.9);
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 9px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      width: 36px;
+      height: 36px;
+      opacity: 0;
+      transform: translateX(10px);
+      pointer-events: none;
+    }
+
+    .iheard-cc-btn.visible {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .iheard-cc-btn.visible:hover {
+      background: rgba(107, 114, 128, 1);
+      transform: translateX(0) translateY(-1px);
+    }
+
+    .iheard-cc-btn.active {
+      background: rgba(59, 130, 246, 0.9);
+    }
+
+    .iheard-cc-btn.active.visible:hover {
+      background: rgba(59, 130, 246, 1);
+    }
+
+    .iheard-cc-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Call Button */
+    .iheard-call-btn {
+      background: rgba(34, 197, 94, 0.9);
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 9px 16px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .iheard-call-btn:hover {
+      background: rgba(34, 197, 94, 1);
+      transform: translateY(-1px);
+    }
+
+    .iheard-call-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Close Button */
+    .iheard-close-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      width: 32px;
+      height: 32px;
+      margin-left: 8px;
+    }
+
+    .iheard-close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .iheard-close-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Chat Input Area */
+    .iheard-chat-input {
+      grid-area: input;
+      padding: 20px;
+      border: none;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .iheard-input-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Default appearance styles for input area */
+    .iheard-chat-input.default-appearance {
+      background: rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(10px);
+    }
+
+    .iheard-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 25px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #333;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .iheard-input.default-appearance {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+    }
+
+    .iheard-input::placeholder {
+      color: rgba(51, 51, 51, 0.6);
+    }
+
+    .iheard-input.default-appearance::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .iheard-input:focus {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .iheard-input.default-appearance:focus {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .iheard-branding {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .iheard-powered-by {
+      font-size: 11px;
+      color: #9ca3af;
+      font-weight: 400;
+      letter-spacing: 0.2px;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .default-appearance .iheard-powered-by {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .iheard-powered-by:hover {
+      opacity: 1;
+    }
+  `;
+}

@@ -1,0 +1,6 @@
+{
+  "basic": "<script src=\"https://cdn.iheard.ai/widget.min.js\"></script>",
+  "versioned": "<script src=\"https://cdn.iheard.ai/widget-1.0.0.min.js\"></script>",
+  "withApiKey": "<script src=\"https://cdn.iheard.ai/widget.min.js?apiKey=YOUR_API_KEY\"></script>",
+  "fullIntegration": "<script>\n  (function(w,d,s,o,f,js,fjs){\n    w['iHeardAIWidget']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};\n    js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];\n    js.id=o;js.src=f;js.async=1;\n    if(fjs){fjs.parentNode.insertBefore(js,fjs);}else{d.head.appendChild(js);}\n  })(window,document,'script','iHeardAI','https://cdn.iheard.ai/widget.min.js?apiKey=YOUR_API_KEY');\n</script>"
+}

@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "buildDate": "2025-08-04T09:59:29.846Z",
+  "files": [
+    {
+      "name": "widget.min.js",
+      "path": "/widget.min.js",
+      "size": 6369,
+      "type": "application/javascript",
+      "url": "https://cdn.iheard.ai/widget.min.js"
+    },
+    {
+      "name": "widget-1.0.0.min.js",
+      "path": "/widget-1.0.0.min.js",
+      "size": 6369,
+      "type": "application/javascript",
+      "url": "https://cdn.iheard.ai/widget-1.0.0.min.js"
+    },
+    {
+      "name": "widget-7c4a680b.min.js",
+      "path": "/widget-7c4a680b.min.js",
+      "size": 6369,
+      "type": "application/javascript",
+      "url": "https://cdn.iheard.ai/widget-7c4a680b.min.js"
+    }
+  ],
+  "cdn": {
+    "provider": "Cloudflare",
+    "domain": "https://cdn.iheard.ai",
+    "headers": {
+      "Cache-Control": "public, max-age=3600, s-maxage=86400",
+      "Content-Type": "application/javascript",
+      "Access-Control-Allow-Origin": "*",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN"
+    }
+  },
+  "integration": {
+    "scriptTag": "<script src=\"https://cdn.iheard.ai/widget.min.js\"></script>",
+    "versionedScriptTag": "<script src=\"https://cdn.iheard.ai/widget-1.0.0.min.js\"></script>",
+    "hashedScriptTag": "<script src=\"https://cdn.iheard.ai/widget-7c4a680b.min.js\"></script>"
+  }
+}
