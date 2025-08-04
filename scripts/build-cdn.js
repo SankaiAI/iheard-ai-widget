@@ -343,6 +343,20 @@ async function main() {
       copyDirectory(functionsSrc, functionsDest);
       console.log('📁 Functions directory copied for Cloudflare Pages');
     }
+
+    // Copy source modules for CDN deployment
+    const srcPath = path.join(__dirname, '..', 'src');
+    const srcDest = path.join(__dirname, '..', config.buildDir);
+    const moduleFolders = ['api', 'core', 'styles', 'ui', 'utils', 'voice'];
+    
+    for (const folder of moduleFolders) {
+      const folderSrc = path.join(srcPath, folder);
+      const folderDest = path.join(srcDest, folder);
+      if (fs.existsSync(folderSrc)) {
+        copyDirectory(folderSrc, folderDest);
+        console.log(`📁 Module directory copied: ${folder}`);
+      }
+    }
     
     console.log('\n🎉 Build completed successfully!');
     console.log('=====================================');
