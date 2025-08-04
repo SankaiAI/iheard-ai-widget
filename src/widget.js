@@ -331,8 +331,34 @@
     getModules: () => window.iHeardModules,
     getConfig: () => window.iHeardModules?.core?.widgetConfig,
     enableDebug: () => window.iHeardModules?.utils?.enableDebugMode?.(),
-    disableDebug: () => window.iHeardModules?.utils?.disableDebugMode?.()
+    disableDebug: () => window.iHeardModules?.utils?.disableDebugMode?.(),
+    
+    // Methods expected by frontend
+    updateConfig: (newConfig) => {
+      if (window.iHeardModules?.core?.updateConfig) {
+        window.iHeardModules.core.updateConfig(newConfig);
+        // Update UI appearance after config change
+        if (window.iHeardModules?.ui?.updateWidgetAppearance) {
+          const widget = document.getElementById('iheard-ai-widget');
+          if (widget) {
+            window.iHeardModules.ui.updateWidgetAppearance(widget);
+          }
+        }
+        return true;
+      }
+      return false;
+    },
+    
+    isInitialized: () => {
+      return !!(window.iHeardModules && 
+               window.iHeardModules.core && 
+               window.iHeardModules.ui &&
+               document.getElementById('iheard-ai-widget'));
+    }
   };
+
+  // Also create the expected iHeardAIWidget alias for backward compatibility
+  window.iHeardAIWidget = window.iHeardAI;
 
   // Auto-initialize when DOM is ready
   if (document.readyState === 'loading') {
