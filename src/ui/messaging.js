@@ -20,6 +20,60 @@ import {
 } from '../api/index.js';
 
 /**
+ * Get user context for API requests
+ * @returns {Object} User context object
+ */
+function getUserContext() {
+  const context = {};
+  
+  // Check if user context is provided in global config
+  if (window.iHeardConfig) {
+    if (window.iHeardConfig.userId) {
+      context.user_id = window.iHeardConfig.userId;
+    }
+    
+    if (window.iHeardConfig.agentKey) {
+      context.agent_key = window.iHeardConfig.agentKey;
+    }
+    
+    if (window.iHeardConfig.storeId) {
+      context.store_id = window.iHeardConfig.storeId;
+    }
+  }
+  
+  // Check URL parameters for testing
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('userId')) {
+    context.user_id = urlParams.get('userId');
+  }
+  
+  if (urlParams.get('agentKey')) {
+    context.agent_key = urlParams.get('agentKey');
+  }
+  
+  if (urlParams.get('storeId')) {
+    context.store_id = urlParams.get('storeId');
+  }
+  
+  // Also check for store ID in the user message (for testing)
+  // This is a temporary solution for testing with store IDs mentioned in messages
+  const storeIdMatch = window.location.href.match(/store[_\s]+([a-zA-Z0-9]+)/i);
+  if (storeIdMatch) {
+    context.store_id = storeIdMatch[1];
+  }
+  
+  // Add metadata
+  context.metadata = {
+    widget_version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    page_url: window.location.href
+  };
+  
+  console.log('🔍 User context:', context);
+  return context;
+}
+
+/**
  * Add user message to chat
  * @param {string} message - User message text
  */
@@ -41,6 +95,209 @@ export function addUserMessage(message) {
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
   console.log('👤 User message added:', message);
+}
+
+/**
+ * Add structured agent response with UI components (product cards, etc.)
+ * @param {Object} response - Structured response from agent
+ */
+export function addStructuredAgentResponse(response) {
+  removeWelcomeMessage();
+  
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer) return;
+
+  // Create message container
+  const messageElement = document.createElement('div');
+  messageElement.className = 'iheard-message assistant-message structured-response';
+
+  // Add text content if present
+  if (response.content) {
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.textContent = response.content;
+    messageElement.appendChild(messageContent);
+  }
+
+  // Add UI components based on response type
+  if (response.type === 'product_recommendations' && response.products?.length > 0) {
+    const productCards = createProductCards(response.products, response.ui_components?.[0]);
+    messageElement.appendChild(productCards);
+  }
+
+  messagesContainer.appendChild(messageElement);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  console.log('🤖 Structured agent response added:', response.type);
+}
+
+/**
+ * Create product cards UI component
+ * @param {Array} products - Array of product data
+ * @param {Object} uiConfig - UI configuration for the cards
+ * @returns {HTMLElement} Product cards container
+ */
+function createProductCards(products, uiConfig = {}) {
+  const container = document.createElement('div');
+  container.className = 'iheard-product-cards-container';
+
+  const header = document.createElement('div');
+  header.className = 'product-cards-header';
+  header.innerHTML = `
+    <span class="products-count">${products.length} Products Found</span>
+    ${uiConfig.show_comparison && products.length > 1 ? '<button class="compare-btn">Compare</button>' : ''}
+  `;
+  container.appendChild(header);
+
+  const cardsContainer = document.createElement('div');
+  const layoutClass = uiConfig.layout || 'grid';
+  const singleProductClass = products.length === 1 ? 'single-product' : '';
+  cardsContainer.className = `product-cards ${layoutClass} ${singleProductClass}`.trim();
+
+  products.forEach(product => {
+    const card = createProductCard(product);
+    cardsContainer.appendChild(card);
+  });
+
+  container.appendChild(cardsContainer);
+  return container;
+}
+
+/**
+ * Create individual product card
+ * @param {Object} product - Product data
+ * @returns {HTMLElement} Product card element
+ */
+function createProductCard(product) {
+  const card = document.createElement('div');
+  card.className = `product-card ${!product.is_available ? 'out-of-stock' : ''}`;
+  card.dataset.productId = product.id;
+
+  card.innerHTML = `
+    <div class="product-image">
+      <img src="${product.image_url}" alt="${product.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZjNmNGY2Ii8+PHBhdGggZD0iTTIwIDEwdjIwbTEwLTEwSDEwIiBzdHJva2U9IiM5Y2EzYWYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg=='" />
+    </div>
+    
+    <div class="product-info">
+      <h4 class="product-name">${product.name}</h4>
+      
+      
+      <div class="product-pricing">
+        ${product.original_price ? `<span class="original-price">$${product.original_price}</span>` : ''}
+        <span class="current-price">$${product.price}</span>
+        <span class="currency">${product.currency}</span>
+      </div>
+      
+      <div class="product-availability">
+        <span class="availability-status ${product.is_available ? 'in-stock' : 'out-of-stock'}">
+          ${product.availability}
+        </span>
+        <span class="shipping-info">${product.shipping_info}</span>
+      </div>
+      
+      <div class="product-actions">
+        <button class="btn-primary add-to-cart" ${!product.is_available ? 'disabled' : ''}>
+          ${product.is_available ? 'Add to Cart' : 'Out of Stock'}
+        </button>
+        <button class="btn-secondary view-details">View Details</button>
+      </div>
+    </div>
+  `;
+
+  // Add click handlers
+  const addToCartBtn = card.querySelector('.add-to-cart');
+  const viewDetailsBtn = card.querySelector('.view-details');
+
+  if (addToCartBtn && product.is_available) {
+    addToCartBtn.addEventListener('click', () => handleAddToCart(product));
+  }
+
+  if (viewDetailsBtn) {
+    viewDetailsBtn.addEventListener('click', () => handleViewDetails(product));
+  }
+
+  return card;
+}
+
+
+/**
+ * Handle add to cart action
+ * @param {Object} product - Product data
+ */
+function handleAddToCart(product) {
+  console.log('🛒 Add to cart clicked:', product.name);
+  
+  // Here you would integrate with the actual e-commerce platform
+  if (product.product_url) {
+    window.open(product.product_url, '_blank');
+  } else {
+    // Show success message or trigger cart action
+    showNotification(`Added ${product.name} to cart!`, 'success');
+  }
+}
+
+/**
+ * Handle view details action
+ * @param {Object} product - Product data
+ */
+function handleViewDetails(product) {
+  console.log('👁️ View details clicked:', product.name);
+  
+  if (product.product_url) {
+    window.open(product.product_url, '_blank');
+  } else {
+    // Show product details in widget or open product page
+    showProductDetails(product);
+  }
+}
+
+/**
+ * Show notification message
+ * @param {string} message - Notification text
+ * @param {string} type - Notification type (success, error, info)
+ */
+function showNotification(message, type = 'info') {
+  // Create temporary notification
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1000000;
+    animation: slideIn 0.3s ease;
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+/**
+ * Show product details (could be expanded into a modal)
+ * @param {Object} product - Product data
+ */
+function showProductDetails(product) {
+  // For now, just send a message asking for more details
+  const input = document.querySelector('.iheard-input');
+  if (input) {
+    input.value = `Tell me more about ${product.name}`;
+    // Trigger send message
+    const sendBtn = document.querySelector('.iheard-action-btn');
+    if (sendBtn) {
+      sendBtn.click();
+    }
+  }
 }
 
 /**
@@ -238,12 +495,22 @@ export async function sendTextMessage(message) {
   try {
     // Use the centralized API function
     const sessionId = generateSessionId();
-    const response = await sendMessageToAgent(message, sessionId);
+    
+    // Build user context for store-specific product search
+    const userContext = getUserContext();
+    
+    const response = await sendMessageToAgent(message, sessionId, userContext);
     
     // Hide typing indicator
     hideTypingIndicator(typingIndicator);
     
-    addAgentMessage(response.response || response.message || 'I received your message!');
+    // Check if we have a structured response (product recommendations)
+    if (response.type === 'product_recommendations' && response.products?.length > 0) {
+      addStructuredAgentResponse(response);
+    } else {
+      // Standard text response
+      addAgentMessage(response.response || response.message || response.content || 'I received your message!');
+    }
 
   } catch (error) {
     console.error('❌ Failed to connect to text agent:', error);
