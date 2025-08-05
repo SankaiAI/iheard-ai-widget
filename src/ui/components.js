@@ -165,11 +165,26 @@ function createChatHeader() {
   const avatar = createAvatar();
   titleGroup.appendChild(avatar);
 
-  // Create title and status
+  // Create title and status container
+  const titleContainer = document.createElement('div');
+  titleContainer.className = 'iheard-title-container';
+  
   const titleElement = document.createElement('h3');
   titleElement.className = 'iheard-chat-title';
   titleElement.textContent = widgetConfig.agentName;
-  titleGroup.appendChild(titleElement);
+  
+  const aiAgentLabel = document.createElement('span');
+  aiAgentLabel.className = 'iheard-ai-agent-label';
+  aiAgentLabel.innerHTML = `
+    <svg class="iheard-ai-icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L13.09 8.26L18 7L16.74 12L18 17L13.09 15.74L12 22L10.91 15.74L6 17L7.26 12L6 7L10.91 8.26L12 2M12 9A3 3 0 0 0 9 12A3 3 0 0 0 12 15A3 3 0 0 0 15 12A3 3 0 0 0 12 9Z"/>
+    </svg>
+    AI Agent
+  `;
+  
+  titleContainer.appendChild(titleElement);
+  titleContainer.appendChild(aiAgentLabel);
+  titleGroup.appendChild(titleContainer);
 
   // Create call section with CC toggle
   const callSection = createCallSection();
@@ -489,9 +504,11 @@ export function updateWidgetAppearance(widget) {
   
   // Update chat title
   const chatTitle = widget.querySelector('.iheard-chat-title');
-  if (chatTitle && widgetConfig.chatTitle) {
-    chatTitle.textContent = widgetConfig.chatTitle;
-    console.log('🏷️ Chat title updated to:', widgetConfig.chatTitle);
+  if (chatTitle) {
+    // Use agentName instead of chatTitle for the main title
+    const titleText = widgetConfig.agentName || widgetConfig.chatTitle || 'AI Assistant';
+    chatTitle.textContent = titleText;
+    console.log('🏷️ Chat title updated to:', titleText);
   }
   
   // Update button text visibility and content
