@@ -9,7 +9,9 @@ import {
   isConnecting,
   setCurrentUserMessage,
   setCurrentAssistantMessage,
-  setConnecting
+  setConnecting,
+  currentApiKey,
+  currentAgentId
 } from '../core/state.js';
 import { widgetConfig } from '../core/config.js';
 import { 
@@ -26,7 +28,16 @@ import {
 function getUserContext() {
   const context = {};
   
-  // Check if user context is provided in global config
+  // Use extracted agent credentials from URL parameters
+  if (currentApiKey) {
+    context.agent_key = currentApiKey;
+  }
+  
+  if (currentAgentId) {
+    context.agent_id = currentAgentId;
+  }
+  
+  // Check if user context is provided in global config (for local testing)
   if (window.iHeardConfig) {
     if (window.iHeardConfig.userId) {
       context.user_id = window.iHeardConfig.userId;
