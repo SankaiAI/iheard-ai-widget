@@ -245,6 +245,15 @@ export function createComponentStyles() {
       }
     }
 
+    @keyframes callButtonGradient {
+      0%, 100% { 
+        background-position: 0% 50%;
+      }
+      50% { 
+        background-position: 100% 50%;
+      }
+    }
+
     .iheard-status-indicator {
       width: 8px;
       height: 8px;
@@ -324,7 +333,8 @@ export function createComponentStyles() {
 
     /* Call Button */
     .iheard-call-btn {
-      background: rgba(34, 197, 94, 0.9);
+      background: linear-gradient(45deg, #22c55e, #16a34a, #15803d, #22c55e);
+      background-size: 300% 300%;
       border: none;
       color: white;
       cursor: pointer;
@@ -336,11 +346,15 @@ export function createComponentStyles() {
       font-size: 14px;
       font-weight: 500;
       transition: all 0.2s ease;
+      animation: callButtonGradient 4s ease-in-out infinite;
+      will-change: background;
     }
 
     .iheard-call-btn:hover {
-      background: rgba(34, 197, 94, 1);
+      background: linear-gradient(45deg, #16a34a, #15803d, #22c55e, #16a34a);
+      background-size: 300% 300%;
       transform: translateY(-1px);
+      animation: callButtonGradient 2s ease-in-out infinite;
     }
 
     .iheard-call-btn svg {
