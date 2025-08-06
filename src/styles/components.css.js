@@ -215,23 +215,23 @@ export function createComponentStyles() {
     .ai-badge {
       background: linear-gradient(135deg, #4f46e5, #7c3aed);
       color: white;
-      padding: 3px 6px;
-      border-radius: 6px;
-      font-size: 9px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 7px;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       text-transform: uppercase;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       animation: aiGlow 3s ease-in-out infinite;
     }
 
     .agent-text {
-      font-size: 11px;
+      font-size: 8px;
       font-weight: 500;
-      color: rgba(255, 255, 255, 0.85);
+      color: rgba(255, 255, 255, 0.75);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      opacity: 0.9;
+      letter-spacing: 0.8px;
+      opacity: 0.8;
     }
 
     @keyframes aiGlow {
