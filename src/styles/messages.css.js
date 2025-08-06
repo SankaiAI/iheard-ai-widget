@@ -614,11 +614,24 @@ export function createMessageStyles() {
     }
 
     .product-cards.collapsed {
-      max-height: 0;
+      max-height: 120px;
       overflow: hidden;
-      opacity: 0;
-      transform: translateY(-10px);
+      opacity: 1;
+      transform: translateY(0);
       transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .product-cards.collapsed::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, rgba(255, 255, 255, 0.05));
+      pointer-events: none;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
     }
 
     .product-cards.expanded {
@@ -627,6 +640,10 @@ export function createMessageStyles() {
       opacity: 1;
       transform: translateY(0);
       transition: all 0.3s ease;
+    }
+
+    .product-cards.expanded::after {
+      display: none;
     }
 
     .product-card {

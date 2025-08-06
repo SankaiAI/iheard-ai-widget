@@ -168,7 +168,7 @@ function createProductCards(products, uiConfig = {}) {
   const expandButton = document.createElement('button');
   expandButton.className = 'product-cards-expand-btn';
   expandButton.innerHTML = `
-    <span class="expand-text">Show Products</span>
+    <span class="expand-text">View All Products</span>
     <svg class="expand-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M7 10l5 5 5-5z"/>
     </svg>
@@ -192,12 +192,12 @@ function createProductCards(products, uiConfig = {}) {
     if (isCollapsed) {
       cardsContainer.classList.remove('collapsed');
       cardsContainer.classList.add('expanded');
-      expandButton.querySelector('.expand-text').textContent = 'Hide Products';
+      expandButton.querySelector('.expand-text').textContent = 'Show Less';
       expandButton.querySelector('.expand-icon').style.transform = 'rotate(180deg)';
     } else {
       cardsContainer.classList.add('collapsed');
       cardsContainer.classList.remove('expanded');
-      expandButton.querySelector('.expand-text').textContent = 'Show Products';
+      expandButton.querySelector('.expand-text').textContent = 'View All Products';
       expandButton.querySelector('.expand-icon').style.transform = 'rotate(0deg)';
     }
   });
