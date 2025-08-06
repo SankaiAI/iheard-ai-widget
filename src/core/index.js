@@ -85,7 +85,7 @@ export async function initializeConfiguration() {
     // Apply URL configuration immediately to avoid default settings flash
     if (initialConfig.configFromUrl && Object.keys(initialConfig.configFromUrl).length > 0) {
       console.log('🎨 Applying URL configuration immediately:', initialConfig.configFromUrl);
-      _updateConfig(initialConfig.configFromUrl);
+      updateConfig(initialConfig.configFromUrl);
     }
     
     // Set API credentials if available
