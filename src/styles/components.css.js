@@ -206,46 +206,42 @@ export function createComponentStyles() {
     }
 
     .iheard-ai-agent-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    }
+
+    .ai-badge {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      padding: 3px 6px;
+      border-radius: 6px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      animation: aiGlow 3s ease-in-out infinite;
+    }
+
+    .agent-text {
       font-size: 11px;
       font-weight: 500;
       color: rgba(255, 255, 255, 0.85);
       text-transform: uppercase;
       letter-spacing: 1px;
-      background: linear-gradient(90deg, #ff9a9e, #fecfef, #a8edea, #fed6e3);
-      background-size: 200% 200%;
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: aiLabelShift 3s ease-in-out infinite;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .iheard-ai-icon {
-      width: 12px;
-      height: 12px;
-      stroke: currentColor;
       opacity: 0.9;
-      animation: aiIconPulse 2s ease-in-out infinite;
     }
 
-    @keyframes aiLabelShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    @keyframes aiIconPulse {
+    @keyframes aiGlow {
       0%, 100% { 
-        opacity: 0.9; 
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         transform: scale(1);
       }
       50% { 
-        opacity: 1; 
-        transform: scale(1.1);
+        box-shadow: 0 3px 8px rgba(79, 70, 229, 0.4);
+        transform: scale(1.02);
       }
     }
 
