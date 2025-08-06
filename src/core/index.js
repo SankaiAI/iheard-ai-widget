@@ -82,6 +82,12 @@ export async function initializeConfiguration() {
     console.log('🔍 Extracting initial configuration...');
     const initialConfig = getInitialConfig();
     
+    // Apply configuration from dashboard global variable (immediate)
+    if (window.iHeardConfigFromDashboard) {
+      console.log('🎨 Applying dashboard configuration immediately:', window.iHeardConfigFromDashboard);
+      updateConfig(window.iHeardConfigFromDashboard);
+    }
+    
     // Apply URL configuration immediately to avoid default settings flash
     if (initialConfig.configFromUrl && Object.keys(initialConfig.configFromUrl).length > 0) {
       console.log('🎨 Applying URL configuration immediately:', initialConfig.configFromUrl);
