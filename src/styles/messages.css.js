@@ -582,6 +582,53 @@ export function createMessageStyles() {
       grid-template-columns: 1fr;
     }
 
+    /* Collapsible Product Cards */
+    .product-cards-collapsible {
+      position: relative;
+    }
+
+    .product-cards-expand-btn {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .product-cards-expand-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .product-cards-expand-btn .expand-icon {
+      transition: transform 0.3s ease;
+    }
+
+    .product-cards.collapsed {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+    }
+
+    .product-cards.expanded {
+      max-height: 1000px;
+      overflow: visible;
+      opacity: 1;
+      transform: translateY(0);
+      transition: all 0.3s ease;
+    }
+
     .product-card {
       background: white;
       border-radius: 12px;

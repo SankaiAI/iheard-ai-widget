@@ -160,17 +160,52 @@ function createProductCards(products, uiConfig = {}) {
   `;
   container.appendChild(header);
 
+  // Create collapsible wrapper
+  const collapsibleWrapper = document.createElement('div');
+  collapsibleWrapper.className = 'product-cards-collapsible';
+  
+  // Create expand/collapse button
+  const expandButton = document.createElement('button');
+  expandButton.className = 'product-cards-expand-btn';
+  expandButton.innerHTML = `
+    <span class="expand-text">Show Products</span>
+    <svg class="expand-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7 10l5 5 5-5z"/>
+    </svg>
+  `;
+  
+  // Create cards container (initially hidden)
   const cardsContainer = document.createElement('div');
   const layoutClass = uiConfig.layout || 'grid';
   const singleProductClass = products.length === 1 ? 'single-product' : '';
-  cardsContainer.className = `product-cards ${layoutClass} ${singleProductClass}`.trim();
+  cardsContainer.className = `product-cards ${layoutClass} ${singleProductClass} collapsed`.trim();
 
   products.forEach(product => {
     const card = createProductCard(product);
     cardsContainer.appendChild(card);
   });
 
-  container.appendChild(cardsContainer);
+  // Add click handler for expand/collapse
+  expandButton.addEventListener('click', () => {
+    const isCollapsed = cardsContainer.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+      cardsContainer.classList.remove('collapsed');
+      cardsContainer.classList.add('expanded');
+      expandButton.querySelector('.expand-text').textContent = 'Hide Products';
+      expandButton.querySelector('.expand-icon').style.transform = 'rotate(180deg)';
+    } else {
+      cardsContainer.classList.add('collapsed');
+      cardsContainer.classList.remove('expanded');
+      expandButton.querySelector('.expand-text').textContent = 'Show Products';
+      expandButton.querySelector('.expand-icon').style.transform = 'rotate(0deg)';
+    }
+  });
+
+  collapsibleWrapper.appendChild(expandButton);
+  collapsibleWrapper.appendChild(cardsContainer);
+  container.appendChild(collapsibleWrapper);
+  
   return container;
 }
 
