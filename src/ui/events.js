@@ -18,7 +18,8 @@ import {
   addAgentMessage, 
   sendTextMessage,
   showWelcomeMessage,
-  getMessageCount 
+  getMessageCount,
+  restoreChatHistory 
 } from './messaging.js';
 import { toggleTranscription } from './transcription.js';
 import { 
@@ -80,11 +81,23 @@ export function setupEventListeners(widget) {
     }
 
     if (newIsOpen && input) {
-      // Show welcome message if this is the first time opening and no messages exist
-      if (widgetConfig.welcomeMessage && getMessageCount() === 0) {
+      // Load chat history when opening chat for the first time
+      if (getMessageCount() === 0) {
         const messagesContainer = chatInterface.querySelector('.iheard-chat-messages');
         if (messagesContainer) {
-          showWelcomeMessage(widgetConfig.welcomeMessage, messagesContainer);
+          // Try to restore chat history first
+          restoreChatHistory(messagesContainer).then((historyLoaded) => {
+            // Only show welcome message if no history was loaded
+            if (!historyLoaded && widgetConfig.welcomeMessage) {
+              showWelcomeMessage(widgetConfig.welcomeMessage, messagesContainer);
+            }
+          }).catch((error) => {
+            console.warn('Failed to restore chat history:', error);
+            // Show welcome message as fallback
+            if (widgetConfig.welcomeMessage) {
+              showWelcomeMessage(widgetConfig.welcomeMessage, messagesContainer);
+            }
+          });
         }
       }
       

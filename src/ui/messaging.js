@@ -30,6 +30,7 @@ import {
   completeThinkingStatus,
   removeThinkingStatus 
 } from './thinking-status.js';
+import { chatHistory } from '../api/chat-history.js';
 
 /**
  * Format message text for proper HTML display with line breaks and styling
@@ -210,6 +211,9 @@ export function addUserMessage(message) {
   });
   
   console.log('👤 User message added:', message);
+  
+  // Save to chat history
+  saveMessageToHistory(message, 'user');
 }
 
 /**
@@ -247,6 +251,31 @@ export function addStructuredAgentResponse(response) {
   // Agent responses appear below without disrupting the scroll position
   
   console.log('🤖 Structured agent response added:', response.type);
+  
+  // Save structured response to chat history
+  if (response.content || (response.products && response.products.length > 0)) {
+    // Save the complete structured response as JSON in the message content
+    const structuredMessage = {
+      type: 'structured_response',
+      content: response.content,
+      response_type: response.type,
+      products: response.products,
+      ui_components: response.ui_components
+    };
+    
+    // Save as JSON string so we can restore the full structure
+    saveMessageToHistory(JSON.stringify(structuredMessage), 'assistant');
+    
+    // Also update activity with products viewed
+    if (response.products && response.products.length > 0) {
+      const productIds = response.products.map(p => p.id).filter(Boolean);
+      if (productIds.length > 0) {
+        chatHistory.updateActivity(productIds).catch(error => {
+          console.warn('Failed to update activity with viewed products:', error);
+        });
+      }
+    }
+  }
 }
 
 /**
@@ -497,6 +526,11 @@ export function addAgentMessage(message, isFinal = true) {
   // Agent messages appear below the current view without moving the scroll
 
   console.log('🤖 Agent message added:', message, 'Final:', isFinal);
+  
+  // Save to chat history only when message is final
+  if (isFinal) {
+    saveMessageToHistory(message, 'assistant');
+  }
 }
 
 /**
@@ -925,3 +959,205 @@ export function exportChatTranscript() {
   
   return transcript.join('\n');
 }
+
+/**
+ * Restore chat history from server when widget initializes
+ * @param {HTMLElement} messagesContainer - Messages container element
+ * @returns {Promise<boolean>} True if history was loaded, false otherwise
+ */
+export async function restoreChatHistory(messagesContainer) {
+  try {
+    // Initialize chat history service with current widget configuration
+    const customerId = chatHistory.initialize({
+      agentKey: currentApiKey,
+      baseUrl: getTextAgentUrl()
+    });
+    
+    console.log(`🔄 Loading chat history for customer: ${customerId}`);
+    
+    // Load conversation history
+    const historyData = await chatHistory.load();
+    
+    if (!historyData || !historyData.messages || historyData.messages.length === 0) {
+      console.log('📭 No chat history found or session expired');
+      return false;
+    }
+    
+    console.log(`📚 Restoring ${historyData.messages.length} messages from chat history`);
+    
+    // Show loading indicator
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'chat-history-loading';
+    loadingIndicator.innerHTML = '<span>🔄 Restoring conversation...</span>';
+    loadingIndicator.style.cssText = `
+      padding: 12px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 14px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 8px;
+      margin: 8px;
+    `;
+    messagesContainer.appendChild(loadingIndicator);
+    
+    // Restore messages with a small delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Remove loading indicator
+    loadingIndicator.remove();
+    
+    // Add timestamp indicator for restored conversation
+    if (historyData.messages.length > 0) {
+      const firstMessage = historyData.messages[0];
+      const timestamp = new Date(firstMessage.timestamp);
+      const timeIndicator = document.createElement('div');
+      timeIndicator.className = 'chat-history-timestamp';
+      timeIndicator.innerHTML = `<span>💬 Continuing conversation from ${timestamp.toLocaleTimeString()}</span>`;
+      timeIndicator.style.cssText = `
+        padding: 8px 12px;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 12px;
+        background: rgba(139, 69, 19, 0.1);
+        border-radius: 6px;
+        margin: 8px;
+        border: 1px solid rgba(139, 69, 19, 0.2);
+      `;
+      messagesContainer.appendChild(timeIndicator);
+    }
+    
+    // Restore each message
+    for (const message of historyData.messages) {
+      if (message.role === 'user') {
+        // Add user message (don't save again - already persisted)
+        addUserMessageToUI(message.content);
+      } else if (message.role === 'assistant') {
+        // Add agent message (don't save again - already persisted)
+        addAgentMessageToUI(message.content);
+      }
+      
+      // Small delay between messages for smoother restoration
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.log('✅ Chat history restored successfully');
+    
+    // Store customer preferences for future use
+    if (historyData.customer_preferences) {
+      console.log('👤 Customer preferences restored:', historyData.customer_preferences);
+      // You could store these preferences in widget state if needed
+    }
+    
+    return true;
+    
+  } catch (error) {
+    console.warn('❌ Failed to restore chat history:', error);
+    return false;
+  }
+}
+
+/**
+ * Add user message to UI without saving (for history restoration)
+ * @param {string} message - Message content
+ */
+function addUserMessageToUI(message) {
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer) return;
+
+  const messageElement = document.createElement('div');
+  messageElement.className = 'iheard-message user-message';
+
+  const messageContent = document.createElement('div');
+  messageContent.className = 'message-content';
+  messageContent.textContent = message;
+
+  messageElement.appendChild(messageContent);
+  messagesContainer.appendChild(messageElement);
+}
+
+/**
+ * Add agent message to UI without saving (for history restoration)  
+ * @param {string} message - Message content (could be JSON for structured responses)
+ */
+function addAgentMessageToUI(message) {
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer) return;
+
+  // Try to parse message as JSON to see if it's a structured response
+  let structuredData = null;
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed.type === 'structured_response') {
+      structuredData = parsed;
+    }
+  } catch (e) {
+    // Not JSON, treat as regular text message
+  }
+
+  if (structuredData) {
+    // Restore structured response with product cards
+    restoreStructuredResponse(structuredData, messagesContainer);
+  } else {
+    // Regular text message
+    const messageElement = document.createElement('div');
+    messageElement.className = 'iheard-message assistant-message';
+
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.innerHTML = formatMessageForDisplay(message);
+
+    messageElement.appendChild(messageContent);
+    messagesContainer.appendChild(messageElement);
+  }
+}
+
+/**
+ * Restore structured response with products from chat history
+ * @param {Object} structuredData - Parsed structured response data
+ * @param {HTMLElement} messagesContainer - Messages container
+ */
+function restoreStructuredResponse(structuredData, messagesContainer) {
+  // Create message container
+  const messageElement = document.createElement('div');
+  messageElement.className = 'iheard-message assistant-message structured-response';
+
+  // Add text content if present
+  if (structuredData.content) {
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.innerHTML = formatMessageForDisplay(structuredData.content);
+    messageElement.appendChild(messageContent);
+  }
+
+  // Add product cards if present
+  if (structuredData.response_type === 'product_recommendations' && structuredData.products?.length > 0) {
+    const productCards = createProductCards(structuredData.products, structuredData.ui_components?.[0]);
+    messageElement.appendChild(productCards);
+  }
+
+  messagesContainer.appendChild(messageElement);
+  console.log('🔄 Restored structured response with', structuredData.products?.length || 0, 'products');
+}
+
+/**
+ * Save message to chat history
+ * Helper function to be called by existing addUserMessage/addAgentMessage functions
+ * @param {string} message - Message content
+ * @param {string} role - Message role ('user' or 'assistant')
+ */
+function saveMessageToHistory(message, role = 'user') {
+  if (!currentApiKey) return;
+  
+  if (role === 'user') {
+    chatHistory.saveUserMessage(message).catch(error => {
+      console.warn('Failed to save user message to chat history:', error);
+    });
+  } else {
+    chatHistory.saveAgentMessage(message).catch(error => {
+      console.warn('Failed to save agent message to chat history:', error);
+    });
+  }
+}
+
+// Export the helper for use in other modules if needed
+export { saveMessageToHistory };
