@@ -32,6 +32,65 @@ import {
 } from './thinking-status.js';
 
 /**
+ * Format message text for proper HTML display with line breaks and styling
+ * @param {string} message - Raw message text from agent
+ * @returns {string} HTML formatted message
+ */
+function formatMessageForDisplay(message) {
+  if (!message) return '';
+  
+  // Escape basic HTML to prevent XSS but allow our formatting
+  let formatted = message
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  // Convert markdown-style formatting to HTML
+  formatted = formatted
+    // Bold text **text** -> <strong>text</strong>
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    
+    // Convert double line breaks to paragraph breaks
+    .replace(/\n\s*\n/g, '</p><p>')
+    
+    // Convert single line breaks to <br>
+    .replace(/\n/g, '<br>')
+    
+    // Convert bullet points (• or -) to proper list items
+    .replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>')
+    
+    // Wrap consecutive list items in <ul>
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    
+    // Fix multiple consecutive <ul> tags
+    .replace(/<\/ul>\s*<ul>/g, '')
+    
+    // Convert emoji headers (💰, ✨, etc.)
+    .replace(/^([💰✨🔥💡⚡🎯🛍️🌟💎🚀]\s*[^:]*:)/gm, '<strong class="emoji-header">$1</strong>')
+    
+    // Wrap everything in paragraphs if not already wrapped
+    .replace(/^(?!<[pu])/gm, '<p>')
+    .replace(/(?<!>)$/gm, '</p>')
+    
+    // Clean up empty paragraphs and fix formatting
+    .replace(/<p>\s*<\/p>/g, '')
+    .replace(/<p>\s*(<strong|<ul)/g, '$1')
+    .replace(/(<\/ul>|<\/strong>)\s*<\/p>/g, '$1');
+  
+  // Ensure we start with a paragraph if we don't start with a formatted element
+  if (!formatted.startsWith('<p>') && !formatted.startsWith('<ul>') && !formatted.startsWith('<strong>')) {
+    formatted = '<p>' + formatted;
+  }
+  
+  // Ensure we end properly
+  if (!formatted.endsWith('</p>') && !formatted.endsWith('</ul>') && !formatted.endsWith('</strong>')) {
+    formatted = formatted + '</p>';
+  }
+  
+  return formatted;
+}
+
+/**
  * Get user context for API requests
  * @returns {Object} User context object
  */
@@ -116,6 +175,9 @@ export function addUserMessage(message) {
   // Add message normally to the bottom (chronological order)
   messagesContainer.appendChild(messageElement);
   
+  // Show thinking dots after user message
+  showThinkingDots();
+  
   // Scroll to position the new message at the same spot as the first message would be
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -156,6 +218,7 @@ export function addUserMessage(message) {
  */
 export function addStructuredAgentResponse(response) {
   removeWelcomeMessage();
+  removeThinkingDots(); // Remove thinking dots when agent responds
   
   const messagesContainer = document.querySelector('.iheard-chat-messages');
   if (!messagesContainer) return;
@@ -168,7 +231,7 @@ export function addStructuredAgentResponse(response) {
   if (response.content) {
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    messageContent.textContent = response.content;
+    messageContent.innerHTML = formatMessageForDisplay(response.content);
     messageElement.appendChild(messageContent);
   }
 
@@ -391,12 +454,13 @@ function showProductDetails(product) {
 }
 
 /**
- * Add agent message to chat with streaming support
+ * Add agent message to chat with streaming typewriter effect
  * @param {string} message - Agent message text
  * @param {boolean} isFinal - Whether this is the final message
  */
 export function addAgentMessage(message, isFinal = true) {
   removeWelcomeMessage();
+  removeThinkingDots(); // Remove thinking dots when agent responds
   
   const messagesContainer = document.querySelector('.iheard-chat-messages');
   if (!messagesContainer) return;
@@ -413,21 +477,98 @@ export function addAgentMessage(message, isFinal = true) {
     messagesContainer.appendChild(currentAssistantMessage);
   }
 
-  // Update content
+  // Update content with typewriter effect
   const messageContent = currentAssistantMessage.querySelector('.message-content');
-  messageContent.textContent = message;
-
+  
   if (isFinal) {
-    // Finalize the message
+    // For final messages, show the typewriter effect
+    startTypewriterEffect(messageContent, formatMessageForDisplay(message));
+    
+    // Finalize the message after typewriter completes
     currentAssistantMessage.classList.remove('streaming');
     currentAssistantMessage.classList.add('final');
     setCurrentAssistantMessage(null);
+  } else {
+    // For streaming messages, update immediately
+    messageContent.innerHTML = formatMessageForDisplay(message);
   }
 
   // DO NOT auto-scroll for agent messages - user controls scroll position
   // Agent messages appear below the current view without moving the scroll
 
   console.log('🤖 Agent message added:', message, 'Final:', isFinal);
+}
+
+/**
+ * Create typewriter effect for agent messages
+ * @param {HTMLElement} container - The message content container
+ * @param {string} htmlContent - The formatted HTML content to type out
+ */
+function startTypewriterEffect(container, htmlContent) {
+  // Create a temporary element to parse the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  
+  // Extract just the text content for typewriter effect
+  const fullText = tempDiv.textContent || tempDiv.innerText || '';
+  
+  // Clear the container and add typewriter wrapper
+  container.innerHTML = '<span class="typewriter-text"></span>';
+  const typewriterSpan = container.querySelector('.typewriter-text');
+  
+  let currentIndex = 0;
+  const typingSpeed = 30; // milliseconds per character
+  
+  function typeNextCharacter() {
+    if (currentIndex < fullText.length) {
+      typewriterSpan.textContent += fullText.charAt(currentIndex);
+      currentIndex++;
+      setTimeout(typeNextCharacter, typingSpeed);
+    } else {
+      // Typewriter complete, show formatted HTML
+      setTimeout(() => {
+        container.innerHTML = htmlContent;
+      }, 500);
+    }
+  }
+  
+  // Start typing
+  typeNextCharacter();
+}
+
+/**
+ * Show animated thinking dots below the user's message
+ */
+export function showThinkingDots() {
+  // Remove any existing thinking dots
+  removeThinkingDots();
+  
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer) return;
+
+  const thinkingDotsElement = document.createElement('div');
+  thinkingDotsElement.className = 'iheard-thinking-dots';
+  thinkingDotsElement.innerHTML = `
+    <div class="thinking-dots-container">
+      <div class="thinking-dot"></div>
+      <div class="thinking-dot"></div>
+      <div class="thinking-dot"></div>
+    </div>
+  `;
+
+  messagesContainer.appendChild(thinkingDotsElement);
+  
+  console.log('💭 Thinking dots added');
+}
+
+/**
+ * Remove thinking dots
+ */
+export function removeThinkingDots() {
+  const existingDots = document.querySelector('.iheard-thinking-dots');
+  if (existingDots) {
+    existingDots.remove();
+  }
 }
 
 /**

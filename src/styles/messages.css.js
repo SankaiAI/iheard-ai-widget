@@ -112,19 +112,30 @@ export function createMessageStyles() {
       border-bottom-right-radius: 6px;
     }
 
-    /* Assistant Messages */
+    /* Assistant Messages - Remove bubble styling, make transparent with white text and larger font */
     .assistant-message .message-content {
-      background: #f1f5f9;
-      color: #1e293b;
-      border-bottom-left-radius: 6px;
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      background: transparent;
+      color: white;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
-    /* Default appearance assistant messages */
+    /* Default appearance assistant messages - Also transparent with white text */
     .default-appearance .assistant-message .message-content {
-      background: rgba(255, 255, 255, 0.9);
-      color: #1e293b;
-      backdrop-filter: blur(10px);
+      background: transparent;
+      color: white;
+      backdrop-filter: none;
+      border: none;
+      box-shadow: none;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
     /* Streaming Messages */
@@ -138,7 +149,124 @@ export function createMessageStyles() {
     }
 
     .iheard-message.streaming.assistant-message .message-content {
-      border-bottom-color: #667eea;
+      border-bottom: none;
+      background: transparent;
+    }
+
+    /* Formatted message content styling */
+    .message-content p {
+      margin: 0 0 10px 0;
+      line-height: 1.4;
+    }
+
+    .message-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .message-content strong {
+      font-weight: 600;
+      color: inherit;
+    }
+
+    .message-content strong.emoji-header {
+      display: block;
+      font-weight: 700;
+      margin: 12px 0 6px 0;
+      font-size: 1.05em;
+    }
+
+    .message-content ul {
+      margin: 8px 0 12px 20px;
+      padding: 0;
+      list-style-type: disc;
+    }
+
+    .message-content li {
+      margin: 4px 0;
+      line-height: 1.4;
+    }
+
+    .message-content br {
+      display: block;
+      margin: 4px 0;
+      content: "";
+    }
+
+    /* Typewriter streaming effect for assistant messages */
+    .assistant-message.streaming .message-content {
+      overflow: hidden;
+    }
+
+    .assistant-message.streaming .message-content .typewriter-text {
+      border-right: 2px solid white;
+      animation: typewriter-cursor 1s infinite;
+    }
+
+    @keyframes typewriter-cursor {
+      0%, 50% { border-color: white; }
+      51%, 100% { border-color: transparent; }
+    }
+
+    /* Enhanced formatting for white text */
+    .assistant-message .message-content strong {
+      color: #fbbf24;
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    }
+
+    .assistant-message .message-content strong.emoji-header {
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: 1.1em;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Animated thinking dots indicator */
+    .iheard-thinking-dots {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 0;
+      margin: 16px 0;
+    }
+
+    .thinking-dots-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .thinking-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: white;
+      opacity: 0.4;
+      animation: thinking-dot-bounce 1.4s infinite ease-in-out both;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+    }
+
+    .thinking-dot:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+
+    .thinking-dot:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+
+    .thinking-dot:nth-child(3) {
+      animation-delay: 0s;
+    }
+
+    @keyframes thinking-dot-bounce {
+      0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.4;
+      }
+      40% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
     }
 
     /* Transcription Messages */
@@ -347,19 +475,30 @@ export function createMessageStyles() {
       border-bottom-right-radius: 6px;
     }
 
-    /* Assistant transcription messages - same as normal assistant messages */
+    /* Assistant transcription messages - transparent like normal assistant messages with white text */
     .iheard-message.transcription-message.assistant-message .message-content {
-      background: #f1f5f9;
-      color: #1e293b;
-      border-bottom-left-radius: 6px;
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      background: transparent;
+      color: white;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
-    /* Default appearance transcription messages */
+    /* Default appearance transcription messages - also transparent with white text */
     .iheard-message.transcription-message.assistant-message.default-appearance .message-content {
-      background: rgba(255, 255, 255, 0.9);
-      color: #1e293b;
-      backdrop-filter: blur(10px);
+      background: transparent;
+      color: white;
+      backdrop-filter: none;
+      border: none;
+      box-shadow: none;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
     .iheard-message.transcription-message.interim {
