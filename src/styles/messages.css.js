@@ -21,6 +21,7 @@ export function createMessageStyles() {
     .iheard-chat-messages {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden; /* Prevent horizontal scroll */
       padding: 20px;
       display: flex;
       flex-direction: column;
@@ -79,7 +80,7 @@ export function createMessageStyles() {
     .iheard-message {
       max-width: 85%;
       margin-bottom: 8px;
-      animation: slideIn 0.3s ease-out;
+      animation: slideInVertical 0.3s ease-out; /* Use vertical animation instead */
       word-wrap: break-word;
       overflow-wrap: break-word;
       position: relative;
@@ -822,6 +823,18 @@ export function createMessageStyles() {
         flex: none;
         padding: 6px 8px;
         font-size: 10px;
+      }
+    }
+
+    /* Message Animations - Use vertical instead of horizontal to prevent scrollbar */
+    @keyframes slideInVertical {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 

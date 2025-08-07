@@ -20,6 +20,16 @@ import {
   getFallbackResponse,
   generateSessionId
 } from '../api/index.js';
+import { 
+  sendMessageWithThinkingStatus,
+  cleanupThinkingWebSocket 
+} from '../api/websocket.js';
+import { 
+  createThinkingStatusComponent,
+  updateThinkingStatus,
+  completeThinkingStatus,
+  removeThinkingStatus 
+} from './thinking-status.js';
 
 /**
  * Get user context for API requests
@@ -102,9 +112,41 @@ export function addUserMessage(message) {
   messageContent.textContent = message;
 
   messageElement.appendChild(messageContent);
+  
+  // Add message normally to the bottom (chronological order)
   messagesContainer.appendChild(messageElement);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
+  
+  // Scroll to position the new message at the same spot as the first message would be
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      // Get the first message in the chat to use as reference position
+      const firstMessage = messagesContainer.querySelector('.iheard-message:first-child');
+      
+      if (firstMessage) {
+        // Get the position where the first message appears relative to the container
+        const containerRect = messagesContainer.getBoundingClientRect();
+        const firstMessageRect = firstMessage.getBoundingClientRect();
+        const referenceOffset = firstMessageRect.top - containerRect.top;
+        
+        // Calculate where we need to scroll to position the new message at that same offset
+        const newMessageRect = messageElement.getBoundingClientRect();
+        const currentOffset = newMessageRect.top - containerRect.top;
+        const scrollAdjustment = currentOffset - referenceOffset;
+        
+        // Scroll to position the new message at the same position as the first message
+        messagesContainer.scrollBy({
+          top: scrollAdjustment,
+          behavior: 'smooth'
+        });
+        
+        console.log('📍 Positioned new message at first message position');
+      } else {
+        // Fallback: if no first message, scroll to top
+        messagesContainer.scrollTop = 0;
+      }
+    });
+  });
+  
   console.log('👤 User message added:', message);
 }
 
@@ -137,8 +179,10 @@ export function addStructuredAgentResponse(response) {
   }
 
   messagesContainer.appendChild(messageElement);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
+  
+  // DO NOT auto-scroll for agent responses - let user control scroll position
+  // Agent responses appear below without disrupting the scroll position
+  
   console.log('🤖 Structured agent response added:', response.type);
 }
 
@@ -380,8 +424,8 @@ export function addAgentMessage(message, isFinal = true) {
     setCurrentAssistantMessage(null);
   }
 
-  // Auto-scroll
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  // DO NOT auto-scroll for agent messages - user controls scroll position
+  // Agent messages appear below the current view without moving the scroll
 
   console.log('🤖 Agent message added:', message, 'Final:', isFinal);
 }
@@ -410,8 +454,9 @@ export function showTypingIndicator() {
   `;
 
   messagesContainer.appendChild(typingIndicator);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
+  
+  // DO NOT auto-scroll for typing indicator - maintain user's scroll position
+  
   return typingIndicator;
 }
 
@@ -524,7 +569,39 @@ export function removeWelcomeMessage() {
 }
 
 /**
- * Send text message to agent
+ * Check if a message is likely asking for products
+ * @param {string} message - User message
+ * @returns {boolean} True if likely a product query
+ */
+function isLikelyProductQuery(message) {
+  const text = message.toLowerCase();
+  
+  // Product-related keywords
+  const productKeywords = [
+    'find', 'search', 'looking for', 'need', 'want', 'buy', 'purchase', 'shop', 
+    'show me', 'get me', 'recommend', 'suggestion', 'available', 'have any',
+    'pillow', 'light', 'lamp', 'furniture', 'decoration', 'gift', 'item', 'product',
+    'cheap', 'expensive', 'budget', 'under', 'price', 'cost', 'sale', 'discount'
+  ];
+  
+  // General conversation keywords that are NOT product queries
+  const generalKeywords = [
+    'hello', 'hi', 'hey', 'thanks', 'thank you', 'goodbye', 'bye',
+    'what time', 'where is', 'how are you', 'weather', 'news',
+    'what day', 'when is', 'what\'s up', 'how\'s it going'
+  ];
+  
+  // Check for general conversation first
+  if (generalKeywords.some(keyword => text.includes(keyword))) {
+    return false;
+  }
+  
+  // Check for product keywords
+  return productKeywords.some(keyword => text.includes(keyword));
+}
+
+/**
+ * Send text message to agent with real-time thinking status
  * @param {string} message - Message to send
  */
 export async function sendTextMessage(message) {
@@ -535,34 +612,109 @@ export async function sendTextMessage(message) {
 
   setConnecting(true);
 
-  // Show typing indicator
-  const typingIndicator = showTypingIndicator();
+  // Get messages container for thinking status
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer) {
+    console.error('❌ Messages container not found for thinking status');
+    return;
+  }
+  
+  // Check if this looks like a product-related query (simple heuristic)
+  const isProductQuery = isLikelyProductQuery(message);
+  console.log('🔍 Is product query:', isProductQuery, 'Message:', message);
+  
+  let thinkingStatus = null;
+  if (isProductQuery) {
+    console.log('🧠 Creating thinking status component for product query...');
+    // Only create thinking status for product-related queries
+    thinkingStatus = createThinkingStatusComponent(messagesContainer);
+    console.log('✅ Thinking status component created:', !!thinkingStatus);
+  }
 
   try {
-    // Use the centralized API function
+    // Generate session ID and build user context
     const sessionId = generateSessionId();
-    
-    // Build user context for store-specific product search
     const userContext = getUserContext();
     
-    const response = await sendMessageToAgent(message, sessionId, userContext);
-    
-    // Hide typing indicator
-    hideTypingIndicator(typingIndicator);
-    
-    // Check if we have a structured response (product recommendations)
-    if (response.type === 'product_recommendations' && response.products?.length > 0) {
-      addStructuredAgentResponse(response);
-    } else {
-      // Standard text response
-      addAgentMessage(response.response || response.message || response.content || 'I received your message!');
+    console.log('🧠 Starting Sales Intelligence with real-time thinking...');
+
+    // Try WebSocket first for real-time thinking status
+    try {
+      const response = await sendMessageWithThinkingStatus(
+        message, 
+        sessionId, 
+        userContext,
+        (statusUpdate) => {
+          // Only show status updates if we have a thinking status component
+          if (thinkingStatus) {
+            console.log('📨 Received status update for UI:', statusUpdate);
+            updateThinkingStatus(statusUpdate);
+          }
+        }
+      );
+
+      // Complete thinking status (only if it was created)
+      if (thinkingStatus) {
+        completeThinkingStatus();
+      }
+      
+      // Process the final response
+      console.log('🎯 Processing final response:', response);
+      console.log('🎯 Response type:', response?.response_type || response?.type);
+      console.log('🎯 Products found:', response?.products?.length || 0, response?.products);
+      
+      if (response && (response.response_type === 'sales_recommendation' || response.type === 'product_recommendations') && response.products?.length > 0) {
+        console.log('✅ Showing structured product response with cards');
+        // Create structured response for product cards
+        const structuredResponse = {
+          type: 'product_recommendations',
+          content: response.message,
+          products: response.products,
+          ui_components: response.ui_components || [{
+            type: 'product_cards',
+            layout: 'grid',
+            max_display: 4,
+            show_comparison: false,
+            reasoning_visible: true
+          }]
+        };
+        addStructuredAgentResponse(structuredResponse);
+      } else {
+        console.log('📝 Showing text-only response');
+        // Extract the actual message content
+        const messageContent = response?.message || response?.response || response?.content;
+        addAgentMessage(messageContent || 'I received your message!');
+      }
+
+    } catch (wsError) {
+      console.warn('⚠️ WebSocket failed, falling back to HTTP:', wsError);
+      
+      // Fallback to regular HTTP API
+      if (thinkingStatus) {
+        removeThinkingStatus();
+      }
+      const typingIndicator = showTypingIndicator();
+      
+      const response = await sendMessageToAgent(message, sessionId, userContext);
+      
+      hideTypingIndicator(typingIndicator);
+      
+      // Check if we have a structured response (product recommendations)
+      if (response.type === 'product_recommendations' && response.products?.length > 0) {
+        addStructuredAgentResponse(response);
+      } else {
+        // Standard text response
+        addAgentMessage(response.response || response.message || response.content || 'I received your message!');
+      }
     }
 
   } catch (error) {
     console.error('❌ Failed to connect to text agent:', error);
     
-    // Hide typing indicator on error
-    hideTypingIndicator(typingIndicator);
+    // Clean up status components
+    if (thinkingStatus) {
+      removeThinkingStatus();
+    }
     
     // Use centralized fallback response
     const fallbackResponse = getFallbackResponse(message);
