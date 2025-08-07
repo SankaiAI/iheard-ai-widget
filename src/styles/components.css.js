@@ -7,7 +7,7 @@ export function createComponentStyles() {
   return `
     /* Widget Button */
     .iheard-widget-button {
-      background: var(--primary-color, #ee5cee);
+      background: #4f46e5; /* Same as AI badge background */
       border: none;
       border-radius: 50px;
       color: white;
@@ -333,8 +333,7 @@ export function createComponentStyles() {
 
     /* Call Button */
     .iheard-call-btn {
-      background: linear-gradient(45deg, #22c55e, #16a34a, #15803d, #22c55e);
-      background-size: 300% 300%;
+      background: #4f46e5; /* Same as AI badge background */
       border: none;
       color: white;
       cursor: pointer;
@@ -346,15 +345,11 @@ export function createComponentStyles() {
       font-size: 14px;
       font-weight: 500;
       transition: all 0.2s ease;
-      animation: callButtonGradient 4s ease-in-out infinite;
-      will-change: background;
     }
 
     .iheard-call-btn:hover {
-      background: linear-gradient(45deg, #16a34a, #15803d, #22c55e, #16a34a);
-      background-size: 300% 300%;
+      opacity: 0.9;
       transform: translateY(-1px);
-      animation: callButtonGradient 2s ease-in-out infinite;
     }
 
     .iheard-call-btn svg {

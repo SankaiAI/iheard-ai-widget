@@ -566,6 +566,61 @@ export function updateWidgetAppearance(widget) {
     avatarContainer.appendChild(gradientWrapper);
   }
   
+  // Update call button, user message bubble, and send button colors
+  const callButton = widget.querySelector('.iheard-call-btn');
+  const sendButton = widget.querySelector('.iheard-action-btn');
+  
+  if (callButton) {
+    // Update call button to use primary color instead of green gradient
+    if (widgetConfig.gradientEnabled) {
+      callButton.style.background = `linear-gradient(45deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      callButton.style.background = widgetConfig.primaryColor;
+    }
+    console.log('📞 Call button color updated to:', widgetConfig.primaryColor);
+  }
+  
+  if (sendButton) {
+    // Update send button background to use primary color, keep icon white
+    if (widgetConfig.gradientEnabled) {
+      sendButton.style.background = `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      sendButton.style.background = widgetConfig.primaryColor;
+    }
+    sendButton.style.color = 'white'; // Always keep icon white
+    console.log('📤 Send button background updated to:', widgetConfig.primaryColor);
+  }
+  
+  // Update user message bubbles to use primary color
+  const userMessages = widget.querySelectorAll('.user-message .message-content');
+  userMessages.forEach(messageContent => {
+    if (widgetConfig.gradientEnabled) {
+      messageContent.style.background = `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      messageContent.style.background = widgetConfig.primaryColor;
+    }
+  });
+  
+  // Create dynamic style for future user messages
+  let userMessageStyle = document.getElementById('iheard-dynamic-user-message-style');
+  if (!userMessageStyle) {
+    userMessageStyle = document.createElement('style');
+    userMessageStyle.id = 'iheard-dynamic-user-message-style';
+    document.head.appendChild(userMessageStyle);
+  }
+  
+  const userMessageBackground = widgetConfig.gradientEnabled 
+    ? `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`
+    : widgetConfig.primaryColor;
+    
+  userMessageStyle.textContent = `
+    .user-message .message-content {
+      background: ${userMessageBackground} !important;
+    }
+  `;
+  
+  console.log('💬 User message bubble colors updated to:', userMessageBackground);
+  
   // Update widget style classes
   if (widget && widgetConfig.widgetStyle) {
     // Remove old widget style classes

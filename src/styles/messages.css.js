@@ -107,7 +107,7 @@ export function createMessageStyles() {
 
     /* User Messages */
     .user-message .message-content {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #4f46e5; /* Same as AI badge background */
       color: white;
       border-bottom-right-radius: 6px;
     }
@@ -564,9 +564,9 @@ export function createMessageStyles() {
       cursor: pointer;
       font-size: 16px;
       font-weight: 500;
-      color: rgba(74, 144, 226, 0.9);
+      background: #4f46e5; /* Same as AI badge background */
+      color: white;
       transition: all 0.2s;
-      background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -575,8 +575,7 @@ export function createMessageStyles() {
 
     .iheard-action-btn:hover {
       transform: translateY(-50%) scale(1.05);
-      background: rgba(255, 255, 255, 0.2);
-      color: rgba(74, 144, 226, 1);
+      opacity: 0.9;
     }
 
     .iheard-action-btn:disabled {
@@ -588,6 +587,9 @@ export function createMessageStyles() {
     .iheard-action-btn svg {
       width: 18px;
       height: 18px;
+      color: white !important;
+      stroke: white !important;
+      fill: white !important;
     }
 
     /* Voice Mode Indicators */

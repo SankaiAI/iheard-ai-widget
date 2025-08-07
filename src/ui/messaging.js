@@ -551,7 +551,7 @@ function startTypewriterEffect(container, htmlContent) {
   const typewriterSpan = container.querySelector('.typewriter-text');
   
   let currentIndex = 0;
-  const typingSpeed = 30; // milliseconds per character
+  const typingSpeed = 15; // milliseconds per character
   
   function typeNextCharacter() {
     if (currentIndex < fullText.length) {
