@@ -1077,5 +1077,83 @@ export function createMessageStyles() {
     .default-appearance .products-count {
       color: rgba(255, 255, 255, 0.9);
     }
+
+    /* End Chat Button Styles */
+    .iheard-end-chat-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0 10px 0;
+      padding: 0;
+    }
+
+    .iheard-end-chat-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 25px;
+      background: #4f46e5; /* Same as widget bubble color */
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+      animation: endChatSlideIn 0.3s ease-out;
+    }
+
+    .iheard-end-chat-btn:hover:not(:disabled) {
+      background: #4338ca;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+
+    .iheard-end-chat-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .iheard-end-chat-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+    }
+
+    /* System Message Styles */
+    .iheard-message.system-message {
+      align-self: center;
+      max-width: 90%;
+      margin: 12px auto;
+    }
+
+    .system-message .message-content {
+      background: rgba(59, 130, 246, 0.1);
+      color: #1e40af;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      text-align: center;
+      font-size: 13px;
+      padding: 10px 16px;
+      border-radius: 20px;
+    }
+
+    .default-appearance .system-message .message-content {
+      background: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes endChatSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   `;
 }

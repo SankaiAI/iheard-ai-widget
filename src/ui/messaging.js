@@ -195,6 +195,9 @@ export function addUserMessage(message) {
   
   // Save to chat history
   saveMessageToHistory(message, 'user');
+  
+  // Start/restart end chat timer
+  startEndChatTimer();
 }
 
 /**
@@ -1149,3 +1152,198 @@ function saveMessageToHistory(message, role = 'user') {
 
 // Export the helper for use in other modules if needed
 export { saveMessageToHistory };
+
+/**
+ * End Chat Button Management
+ * Shows/hides end chat button based on user activity
+ */
+let endChatTimer = null;
+let endChatButton = null;
+const END_CHAT_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Start or restart the end chat inactivity timer
+ */
+export function startEndChatTimer() {
+  // Clear existing timer
+  clearEndChatTimer();
+  
+  // Start new timer
+  endChatTimer = setTimeout(() => {
+    showEndChatButton();
+  }, END_CHAT_TIMEOUT);
+}
+
+/**
+ * Clear the end chat timer and hide button
+ */
+export function clearEndChatTimer() {
+  if (endChatTimer) {
+    clearTimeout(endChatTimer);
+    endChatTimer = null;
+  }
+  hideEndChatButton();
+}
+
+/**
+ * Show the end chat button
+ */
+function showEndChatButton() {
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer || endChatButton) return; // Don't create multiple buttons
+  
+  // Check if there are any messages before showing the button
+  const messageCount = getMessageCount();
+  if (messageCount === 0) return;
+  
+  endChatButton = document.createElement('div');
+  endChatButton.className = 'iheard-end-chat-container';
+  endChatButton.innerHTML = `
+    <button class="iheard-end-chat-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+      End Chat
+    </button>
+  `;
+  
+  // Add click handler
+  const button = endChatButton.querySelector('.iheard-end-chat-btn');
+  button.addEventListener('click', handleEndChat);
+  
+  messagesContainer.appendChild(endChatButton);
+  
+  // Scroll to show the button
+  setTimeout(() => {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }, 100);
+  
+  console.log('📞 End chat button displayed after inactivity');
+}
+
+/**
+ * Hide the end chat button
+ */
+function hideEndChatButton() {
+  if (endChatButton && endChatButton.parentNode) {
+    endChatButton.parentNode.removeChild(endChatButton);
+    endChatButton = null;
+    console.log('📞 End chat button hidden');
+  }
+}
+
+/**
+ * Handle end chat button click
+ */
+async function handleEndChat() {
+  try {
+    console.log('📞 End chat requested by user');
+    
+    // Show confirmation dialog
+    const confirmed = confirm('Are you sure you want to end this chat session? This will archive your conversation.');
+    if (!confirmed) return;
+    
+    // Disable button to prevent multiple clicks
+    const button = endChatButton.querySelector('.iheard-end-chat-btn');
+    button.disabled = true;
+    button.textContent = 'Ending Chat...';
+    
+    // Archive the session
+    const success = await archiveCurrentSession();
+    
+    if (success) {
+      // Show success message
+      addSystemMessage('Chat session ended successfully. Thank you for using our service!');
+      
+      // Clear the chat after a delay
+      setTimeout(() => {
+        clearMessages();
+      }, 3000);
+      
+      // Close the widget
+      setTimeout(() => {
+        const chatInterface = document.querySelector('.iheard-chat-interface');
+        if (chatInterface) {
+          chatInterface.style.display = 'none';
+        }
+      }, 5000);
+    } else {
+      // Show error and re-enable button
+      addSystemMessage('Failed to end chat session. Please try again.');
+      button.disabled = false;
+      button.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+        End Chat
+      `;
+    }
+  } catch (error) {
+    console.error('❌ Error ending chat:', error);
+    addSystemMessage('An error occurred while ending the chat. Please try again.');
+  }
+}
+
+/**
+ * Archive the current customer session
+ * @returns {Promise<boolean>} True if successful, false otherwise
+ */
+async function archiveCurrentSession() {
+  try {
+    const userContext = getUserContext();
+    if (!userContext.agent_key || !userContext.user_id) {
+      console.warn('⚠️ Cannot archive session - missing agent_key or user_id');
+      return false;
+    }
+    
+    const archiveUrl = `${getTextAgentUrl()}/api/session/archive`;
+    const response = await fetch(archiveUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        agent_key: userContext.agent_key,
+        customer_id: userContext.user_id,
+        archived_by: 'user',
+        archive_reason: 'user_ended_chat'
+      })
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Session archived successfully:', result);
+      return true;
+    } else {
+      console.error('❌ Failed to archive session:', response.status, response.statusText);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error archiving session:', error);
+    return false;
+  }
+}
+
+/**
+ * Add a system message (different from user/assistant messages)
+ * @param {string} message - System message text
+ */
+function addSystemMessage(message) {
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer) return;
+
+  const messageElement = document.createElement('div');
+  messageElement.className = 'iheard-message system-message';
+
+  const messageContent = document.createElement('div');
+  messageContent.className = 'message-content';
+  messageContent.textContent = message;
+
+  messageElement.appendChild(messageContent);
+  messagesContainer.appendChild(messageElement);
+  
+  // Scroll to show the system message
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  
+  console.log('🔔 System message added:', message);
+}

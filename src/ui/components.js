@@ -606,6 +606,17 @@ export function updateWidgetAppearance(widget) {
     }
   });
   
+  // Update end chat button to use primary color
+  const endChatButton = widget.querySelector('.iheard-end-chat-btn');
+  if (endChatButton) {
+    if (widgetConfig.gradientEnabled) {
+      endChatButton.style.background = `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      endChatButton.style.background = widgetConfig.primaryColor;
+    }
+    console.log('📞 End chat button color updated to:', widgetConfig.primaryColor);
+  }
+  
   // Create dynamic style for future user messages
   let userMessageStyle = document.getElementById('iheard-dynamic-user-message-style');
   if (!userMessageStyle) {
@@ -624,7 +635,26 @@ export function updateWidgetAppearance(widget) {
     }
   `;
   
+  // Create dynamic style for end chat button
+  let endChatButtonStyle = document.getElementById('iheard-dynamic-end-chat-button-style');
+  if (!endChatButtonStyle) {
+    endChatButtonStyle = document.createElement('style');
+    endChatButtonStyle.id = 'iheard-dynamic-end-chat-button-style';
+    document.head.appendChild(endChatButtonStyle);
+  }
+  
+  const endChatButtonBackground = widgetConfig.gradientEnabled 
+    ? `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`
+    : widgetConfig.primaryColor;
+    
+  endChatButtonStyle.textContent = `
+    .iheard-end-chat-btn {
+      background: ${endChatButtonBackground} !important;
+    }
+  `;
+  
   console.log('💬 User message bubble colors updated to:', userMessageBackground);
+  console.log('📞 End chat button dynamic style updated to:', endChatButtonBackground);
   
   // Update widget style classes
   if (widget && widgetConfig.widgetStyle) {

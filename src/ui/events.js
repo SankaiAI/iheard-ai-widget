@@ -19,7 +19,9 @@ import {
   sendTextMessage,
   showWelcomeMessage,
   getMessageCount,
-  restoreChatHistory 
+  restoreChatHistory,
+  startEndChatTimer,
+  clearEndChatTimer
 } from './messaging.js';
 import { toggleTranscription } from './transcription.js';
 import { 
@@ -91,6 +93,10 @@ export function setupEventListeners(widget) {
             if (!historyLoaded && widgetConfig.welcomeMessage) {
               showWelcomeMessage(widgetConfig.welcomeMessage, messagesContainer);
             }
+            // Start end chat timer after loading history
+            if (historyLoaded || getMessageCount() > 0) {
+              startEndChatTimer();
+            }
           }).catch((error) => {
             console.warn('Failed to restore chat history:', error);
             // Show welcome message as fallback
@@ -118,6 +124,7 @@ export function setupEventListeners(widget) {
     }
     
     setOpen(false);
+    clearEndChatTimer(); // Clear end chat timer when closing
     chatInterface.style.display = 'none';
     chatInterface.classList.remove('iheard-chat-open');
     
@@ -193,6 +200,16 @@ export function setupInputEventHandlers(input, actionBtn) {
     if (e.key === 'Enter') {
       handleSend();
     }
+  });
+  
+  // Restart end chat timer on input activity
+  input.addEventListener('input', () => {
+    startEndChatTimer();
+  });
+  
+  // Also restart on focus (when user clicks in input)
+  input.addEventListener('focus', () => {
+    startEndChatTimer();
   });
 }
 
