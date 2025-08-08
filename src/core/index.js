@@ -38,6 +38,7 @@ export const {
   currentUserMessage,
   currentAssistantMessage,
   currentAgentId,
+  currentCustomerId,
   configPollingInterval,
   setOpen,
   setVoiceConnected,
@@ -45,6 +46,7 @@ export const {
   setCurrentUserMessage,
   setCurrentAssistantMessage,
   setCurrentAgentId,
+  setCurrentCustomerId,
   setConfigPollingInterval,
   resetState,
   setApiCredentials
@@ -61,6 +63,9 @@ export {
   getConfigApiUrl,
   validateEnvironmentConfig
 } from './environment.js';
+
+// Import customer ID generation
+import { generateCustomerId } from './customer-id.js';
 
 /**
  * Initialize core configuration system
@@ -101,6 +106,12 @@ export async function initializeConfiguration() {
     } else {
       console.log('⚠️ No API credentials found in URL parameters');
     }
+    
+    // Generate and set customer ID for conversation continuity
+    console.log('👤 Generating customer ID for conversation tracking...');
+    const customerId = generateCustomerId();
+    stateModule.setCurrentCustomerId(customerId);
+    console.log('✅ Customer ID set:', customerId);
     
     console.log('✅ Core configuration initialized');
   } catch (error) {

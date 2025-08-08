@@ -41,3 +41,12 @@ export {
   clearInterimTranscriptions,
   processRealtimeTranscription
 } from './transcription.js';
+
+export {
+  initializeUnifiedConversation,
+  sendUnifiedMessage,
+  getConversationState,
+  switchToMode,
+  cleanupUnifiedConversation,
+  sendMessage
+} from './unified-messaging.js';

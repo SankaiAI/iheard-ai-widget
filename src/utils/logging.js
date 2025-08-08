@@ -239,3 +239,19 @@ if (window.location.hostname === 'localhost' ||
     window.location.search.includes('debug=true')) {
   enableDebugMode();
 }
+
+/**
+ * Logger object with standard logging interface
+ * Compatible with console.log/warn/error API
+ */
+export const logger = {
+  error: logError,
+  warn: logWarning,
+  info: logInfo,
+  log: logInfo,  // Alias for info
+  debug: (message, data = null, context = 'Widget') => {
+    if (debugMode) {
+      logInfo(message, data, context);
+    }
+  }
+};

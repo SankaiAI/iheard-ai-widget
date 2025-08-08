@@ -36,6 +36,9 @@ export {
   getOngoingTranscriptions
 } from './transcription.js';
 
+// Export getVoiceAgentUrl for unified conversation management
+export { getVoiceAgentUrl } from '../core/environment.js';
+
 /**
  * Initialize voice system
  * @returns {Promise<void>}

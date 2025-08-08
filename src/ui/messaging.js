@@ -11,7 +11,8 @@ import {
   setCurrentAssistantMessage,
   setConnecting,
   currentApiKey,
-  currentAgentId
+  currentAgentId,
+  currentCustomerId
 } from '../core/state.js';
 import { widgetConfig } from '../core/config.js';
 import { 
@@ -105,6 +106,11 @@ function getUserContext() {
   
   if (currentAgentId) {
     context.agent_id = currentAgentId;
+  }
+  
+  // Add customer ID for conversation history
+  if (currentCustomerId) {
+    context.user_id = currentCustomerId;
   }
   
   // Check if user context is provided in global config (for local testing)

@@ -39,3 +39,9 @@ export {
   resetChatHistoryService,
   chatHistory
 } from './chat-history.js';
+
+export {
+  UnifiedConversationManager,
+  createUnifiedConversation,
+  detectModeSwitch
+} from './unified-conversation.js';
