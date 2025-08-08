@@ -662,9 +662,9 @@ export function createMessageStyles() {
     .iheard-product-cards-container {
       margin: 12px 0;
       padding: 16px;
-      background: rgba(255, 255, 255, 0.05);
+      background: transparent;
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: none;
     }
 
     .product-cards-header {
@@ -1004,8 +1004,8 @@ export function createMessageStyles() {
 
     /* Default appearance overrides for product cards */
     .default-appearance .iheard-product-cards-container {
-      background: rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: transparent;
+      border: none;
     }
 
     .default-appearance .products-count {
