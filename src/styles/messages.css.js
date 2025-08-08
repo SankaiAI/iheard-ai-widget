@@ -1122,6 +1122,86 @@ export function createMessageStyles() {
       stroke: currentColor;
     }
 
+    .iheard-end-chat-btn.confirmation-mode {
+      background: #dc2626 !important; /* Red background for confirmation */
+      animation: pulse 2s infinite;
+    }
+
+    .iheard-end-chat-btn.confirmation-mode:hover:not(:disabled) {
+      background: #b91c1c !important; /* Darker red on hover */
+    }
+
+    /* End Chat Alert Message */
+    .iheard-end-chat-alert {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      animation: alertSlideIn 0.3s ease-out;
+    }
+
+    .iheard-end-chat-alert .alert-text {
+      color: #dc2626;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .iheard-end-chat-alert .alert-actions {
+      display: flex;
+      justify-content: center;
+    }
+
+    .iheard-end-chat-alert .cancel-btn {
+      padding: 6px 16px;
+      background: rgba(107, 114, 128, 0.8);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .iheard-end-chat-alert .cancel-btn:hover {
+      background: rgba(107, 114, 128, 1);
+      transform: translateY(-1px);
+    }
+
+    /* Default appearance styles for alert */
+    .default-appearance .iheard-end-chat-alert {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .default-appearance .iheard-end-chat-alert .alert-text {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+      }
+      50% {
+        box-shadow: 0 4px 16px rgba(220, 38, 38, 0.5);
+      }
+    }
+
+    @keyframes alertSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
     /* System Message Styles */
     .iheard-message.system-message {
       align-self: center;

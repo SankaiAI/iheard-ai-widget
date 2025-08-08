@@ -1239,48 +1239,120 @@ async function handleEndChat() {
   try {
     console.log('📞 End chat requested by user');
     
-    // Show confirmation dialog
-    const confirmed = confirm('Are you sure you want to end this chat session? This will archive your conversation.');
-    if (!confirmed) return;
-    
-    // Disable button to prevent multiple clicks
     const button = endChatButton.querySelector('.iheard-end-chat-btn');
-    button.disabled = true;
-    button.textContent = 'Ending Chat...';
     
-    // Archive the session
-    const success = await archiveCurrentSession();
-    
-    if (success) {
-      // Show success message
-      addSystemMessage('Chat session ended successfully. Thank you for using our service!');
+    // Check if we're already in confirmation state
+    if (button.classList.contains('confirmation-mode')) {
+      // User clicked confirm - proceed with archiving
+      button.disabled = true;
+      button.textContent = 'Ending Chat...';
+      button.style.background = '#6b7280'; // Gray while processing
       
-      // Clear the chat after a delay
-      setTimeout(() => {
-        clearMessages();
-      }, 3000);
+      // Archive the session
+      const success = await archiveCurrentSession();
       
-      // Close the widget
-      setTimeout(() => {
-        const chatInterface = document.querySelector('.iheard-chat-interface');
-        if (chatInterface) {
-          chatInterface.style.display = 'none';
-        }
-      }, 5000);
+      if (success) {
+        // Show success message
+        addSystemMessage('Chat session ended successfully. Thank you for using our service!');
+        
+        // Clear the chat after a delay
+        setTimeout(() => {
+          clearMessages();
+        }, 3000);
+        
+        // Close the widget
+        setTimeout(() => {
+          const chatInterface = document.querySelector('.iheard-chat-interface');
+          if (chatInterface) {
+            chatInterface.style.display = 'none';
+          }
+        }, 5000);
+      } else {
+        // Show error and reset button
+        addSystemMessage('Failed to end chat session. Please try again.');
+        resetEndChatButton();
+      }
     } else {
-      // Show error and re-enable button
-      addSystemMessage('Failed to end chat session. Please try again.');
-      button.disabled = false;
-      button.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-        End Chat
-      `;
+      // First click - show confirmation
+      showEndChatConfirmation();
     }
   } catch (error) {
     console.error('❌ Error ending chat:', error);
     addSystemMessage('An error occurred while ending the chat. Please try again.');
+    resetEndChatButton();
+  }
+}
+
+/**
+ * Show inline confirmation for ending chat
+ */
+function showEndChatConfirmation() {
+  const button = endChatButton.querySelector('.iheard-end-chat-btn');
+  
+  // Update button to confirmation state
+  button.classList.add('confirmation-mode');
+  button.style.background = '#dc2626'; // Red background
+  button.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 12l2 2 4-4"/>
+    </svg>
+    Confirm End Chat
+  `;
+  
+  // Update container to show warning message
+  const alertMessage = document.createElement('div');
+  alertMessage.className = 'iheard-end-chat-alert';
+  alertMessage.innerHTML = `
+    <div class="alert-text">⚠️ This will archive your conversation and end the chat session.</div>
+    <div class="alert-actions">
+      <button class="cancel-btn">Cancel</button>
+    </div>
+  `;
+  
+  endChatButton.appendChild(alertMessage);
+  
+  // Add cancel button handler
+  const cancelBtn = alertMessage.querySelector('.cancel-btn');
+  cancelBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    resetEndChatButton();
+  });
+  
+  // Auto-reset after 10 seconds if no action
+  setTimeout(() => {
+    if (button.classList.contains('confirmation-mode')) {
+      resetEndChatButton();
+    }
+  }, 10000);
+}
+
+/**
+ * Reset end chat button to original state
+ */
+function resetEndChatButton() {
+  if (!endChatButton) return;
+  
+  const button = endChatButton.querySelector('.iheard-end-chat-btn');
+  const alertMessage = endChatButton.querySelector('.iheard-end-chat-alert');
+  
+  // Remove confirmation state
+  button.classList.remove('confirmation-mode');
+  button.disabled = false;
+  
+  // Reset button content and color
+  button.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+    End Chat
+  `;
+  
+  // Reset color to theme color (will be applied by dynamic styles)
+  button.style.background = '';
+  
+  // Remove alert message if present
+  if (alertMessage) {
+    alertMessage.remove();
   }
 }
 
