@@ -1368,27 +1368,148 @@ async function archiveCurrentSession() {
       return false;
     }
     
-    const archiveUrl = `${getTextAgentUrl()}/api/session/archive`;
-    const response = await fetch(archiveUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        agent_key: userContext.agent_key,
-        customer_id: userContext.user_id,
-        archived_by: 'user',
-        archive_reason: 'user_ended_chat'
-      })
-    });
+    // Try text-agent-server first (primary archive endpoint)
+    let archiveUrl = `${getTextAgentUrl()}/api/session/archive`;
+    console.log('📦 Attempting to archive session via text-agent-server:', archiveUrl);
     
-    if (response.ok) {
-      const result = await response.json();
-      console.log('✅ Session archived successfully:', result);
-      return true;
-    } else {
-      console.error('❌ Failed to archive session:', response.status, response.statusText);
-      return false;
+    try {
+      const response = await fetch(archiveUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agent_key: userContext.agent_key,
+          customer_id: userContext.user_id,
+          archived_by: 'user',
+          archive_reason: 'user_ended_chat'
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Session archived successfully via text-agent-server:', result);
+        return true;
+      } else {
+        console.warn('⚠️ Text-agent-server archive failed:', response.status, response.statusText);
+        throw new Error(`Text agent archive failed: ${response.status}`);
+      }
+    } catch (textAgentError) {
+      console.warn('⚠️ Text-agent-server not available, trying voice-agent-server fallback');
+      
+      // Fallback to voice-agent-server if text-agent-server fails
+      // Determine voice-agent-server URL by trying common ports
+      const textUrl = getTextAgentUrl();
+      let voiceAgentUrl;
+      
+      if (textUrl.includes(':8080')) {
+        // Standard development setup
+        voiceAgentUrl = textUrl.replace(':8080', ':8001');
+      } else if (textUrl.includes(':3000')) {
+        // Alternative setup
+        voiceAgentUrl = textUrl.replace(':3000', ':8001');
+      } else if (textUrl.includes('localhost')) {
+        // Generic localhost fallback
+        voiceAgentUrl = 'http://localhost:8001';
+      } else {
+        // Production or custom setup - try port 8001
+        const url = new URL(textUrl);
+        voiceAgentUrl = `${url.protocol}//${url.hostname}:8001`;
+      }
+      
+      archiveUrl = `${voiceAgentUrl}/api/session/archive`;
+      console.log('📦 Attempting fallback archive via voice-agent-server:', archiveUrl);
+      
+      try {
+        const fallbackResponse = await fetch(archiveUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            agent_key: userContext.agent_key,
+            customer_id: userContext.user_id,
+            archived_by: 'user',
+            archive_reason: 'user_ended_chat'
+          })
+        });
+        
+        if (fallbackResponse.ok) {
+          const result = await fallbackResponse.json();
+          console.log('✅ Session archived successfully via voice-agent-server fallback:', result);
+          return true;
+        } else {
+          console.error('❌ Voice-agent-server archive also failed:', fallbackResponse.status, fallbackResponse.statusText);
+          
+          // Last resort: try common voice-agent ports
+          const commonPorts = ['8001', '8002', '3001'];
+          for (const port of commonPorts) {
+            if (voiceAgentUrl.includes(`:${port}`)) continue; // Skip if already tried
+            
+            try {
+              const lastResortUrl = `http://localhost:${port}/api/session/archive`;
+              console.log(`📦 Last resort attempt on port ${port}:`, lastResortUrl);
+              
+              const lastResortResponse = await fetch(lastResortUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  agent_key: userContext.agent_key,
+                  customer_id: userContext.user_id,
+                  archived_by: 'user',
+                  archive_reason: 'user_ended_chat'
+                })
+              });
+              
+              if (lastResortResponse.ok) {
+                const result = await lastResortResponse.json();
+                console.log(`✅ Session archived successfully via port ${port}:`, result);
+                return true;
+              }
+            } catch (portError) {
+              console.warn(`⚠️ Port ${port} also failed:`, portError.message);
+            }
+          }
+          
+          return false;
+        }
+      } catch (voiceAgentError) {
+        console.error('❌ Voice-agent-server connection failed, trying last resort ports:', voiceAgentError);
+        
+        // Emergency fallback: try all common ports
+        const commonPorts = ['8001', '8002', '3001'];
+        for (const port of commonPorts) {
+          try {
+            const emergencyUrl = `http://localhost:${port}/api/session/archive`;
+            console.log(`📦 Emergency attempt on port ${port}:`, emergencyUrl);
+            
+            const emergencyResponse = await fetch(emergencyUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                agent_key: userContext.agent_key,
+                customer_id: userContext.user_id,
+                archived_by: 'user',
+                archive_reason: 'user_ended_chat'
+              })
+            });
+            
+            if (emergencyResponse.ok) {
+              const result = await emergencyResponse.json();
+              console.log(`✅ Session archived successfully via emergency port ${port}:`, result);
+              return true;
+            }
+          } catch (emergencyError) {
+            console.warn(`⚠️ Emergency port ${port} failed:`, emergencyError.message);
+          }
+        }
+        
+        return false;
+      }
     }
   } catch (error) {
     console.error('❌ Error archiving session:', error);

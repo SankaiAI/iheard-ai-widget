@@ -1081,6 +1081,7 @@ export function createMessageStyles() {
     /* End Chat Button Styles */
     .iheard-end-chat-container {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       margin: 20px 0 10px 0;
