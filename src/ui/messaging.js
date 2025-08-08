@@ -1048,6 +1048,12 @@ export async function restoreChatHistory(messagesContainer) {
     
     console.log('✅ Chat history restored successfully');
     
+    // Scroll to bottom to show the most recent messages
+    setTimeout(() => {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      console.log('📍 Scrolled to bottom after restoring chat history');
+    }, 200);
+    
     // Store customer preferences for future use
     if (historyData.customer_preferences) {
       console.log('👤 Customer preferences restored:', historyData.customer_preferences);

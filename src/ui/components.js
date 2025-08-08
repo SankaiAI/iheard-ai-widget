@@ -375,7 +375,12 @@ export function updateCallButtonState(state) {
       
     case 'disconnected':
     default:
-      callBtn.style.background = 'rgba(34, 197, 94, 0.9)';
+      // Use the same color as widget button and send button
+      if (widgetConfig.gradientEnabled) {
+        callBtn.style.background = `linear-gradient(45deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+      } else {
+        callBtn.style.background = widgetConfig.primaryColor;
+      }
       callBtn.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="4" y="11" width="2" height="2" rx="1" fill="currentColor"/>
