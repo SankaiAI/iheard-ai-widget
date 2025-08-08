@@ -661,10 +661,12 @@ export function createMessageStyles() {
     /* Product Cards Styles */
     .iheard-product-cards-container {
       margin: 12px 0;
-      padding: 16px;
+      padding: 0;
       background: transparent;
       border-radius: 12px;
       border: none;
+      width: 100%;
+      overflow: hidden;
     }
 
     .product-cards-header {
@@ -716,8 +718,40 @@ export function createMessageStyles() {
     .product-cards.carousel {
       display: flex;
       overflow-x: auto;
+      overflow-y: hidden;
       scroll-snap-type: x mandatory;
-      padding-bottom: 8px;
+      padding: 0 0 8px 0;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .product-cards.carousel::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .product-cards.carousel::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 3px;
+    }
+
+    .product-cards.carousel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+
+    .product-cards.carousel::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .product-cards.carousel .product-card {
+      flex: 0 0 160px;
+      scroll-snap-align: start;
+      max-width: 160px;
+      min-width: 160px;
     }
 
     .product-cards.list {
@@ -764,6 +798,12 @@ export function createMessageStyles() {
       position: relative;
     }
 
+    /* Allow horizontal scrolling for carousel even when collapsed */
+    .product-cards.carousel.collapsed {
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
     .product-cards.collapsed::after {
       content: '';
       position: absolute;
@@ -782,6 +822,12 @@ export function createMessageStyles() {
       opacity: 1;
       transform: translateY(0);
       transition: all 0.3s ease;
+    }
+
+    /* Maintain horizontal scrolling for carousel even when expanded */
+    .product-cards.carousel.expanded {
+      overflow-x: auto;
+      overflow-y: hidden;
     }
 
     .product-cards.expanded::after {
@@ -964,6 +1010,26 @@ export function createMessageStyles() {
         flex: none;
         padding: 6px 8px;
         font-size: 10px;
+      }
+      
+      /* Mobile carousel support */
+      .product-cards.carousel {
+        gap: 8px;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .product-cards.carousel .product-card {
+        flex: 0 0 140px;
+        min-width: 140px;
+        max-width: 140px;
+      }
+      
+      /* Ensure scrolling works on mobile for both collapsed and expanded */
+      .product-cards.carousel.collapsed,
+      .product-cards.carousel.expanded {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
       }
     }
 

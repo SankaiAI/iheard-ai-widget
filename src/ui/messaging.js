@@ -293,7 +293,8 @@ function createProductCards(products, uiConfig = {}) {
   
   // Create cards container (initially hidden)
   const cardsContainer = document.createElement('div');
-  const layoutClass = uiConfig.layout || 'grid';
+  // Use carousel layout for more than 2 products, otherwise use grid
+  const layoutClass = products.length > 2 ? 'carousel' : (uiConfig.layout || 'grid');
   const singleProductClass = products.length === 1 ? 'single-product' : '';
   cardsContainer.className = `product-cards ${layoutClass} ${singleProductClass} collapsed`.trim();
 
