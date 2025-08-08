@@ -185,35 +185,10 @@ export function addUserMessage(message) {
   // Show thinking dots after user message
   showThinkingDots();
   
-  // Scroll to position the new message at the same spot as the first message would be
+  // Scroll to bottom to show the new message
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      // Get the first message in the chat to use as reference position
-      const firstMessage = messagesContainer.querySelector('.iheard-message:first-child');
-      
-      if (firstMessage) {
-        // Get the position where the first message appears relative to the container
-        const containerRect = messagesContainer.getBoundingClientRect();
-        const firstMessageRect = firstMessage.getBoundingClientRect();
-        const referenceOffset = firstMessageRect.top - containerRect.top;
-        
-        // Calculate where we need to scroll to position the new message at that same offset
-        const newMessageRect = messageElement.getBoundingClientRect();
-        const currentOffset = newMessageRect.top - containerRect.top;
-        const scrollAdjustment = currentOffset - referenceOffset;
-        
-        // Scroll to position the new message at the same position as the first message
-        messagesContainer.scrollBy({
-          top: scrollAdjustment,
-          behavior: 'smooth'
-        });
-        
-        console.log('📍 Positioned new message at first message position');
-      } else {
-        // Fallback: if no first message, scroll to top
-        messagesContainer.scrollTop = 0;
-      }
-    });
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    console.log('📍 Scrolled to bottom for new user message');
   });
   
   console.log('👤 User message added:', message);
