@@ -21,55 +21,55 @@ export function createComponentStyles() {
       outline: none;
       user-select: none;
       /* Default styling */
-      border-radius: 30px;
-      padding: 4px 16px;
-      font-size: 14px;
-      min-height: 60px;
+      border-radius: 25px;
+      padding: 4px 12px;
+      font-size: 13px;
+      min-height: 48px;
     }
 
     /* Widget Button Size Variations */
     .widget-size-small .iheard-widget-button {
-      min-height: 48px;
-      font-size: 12px;
-      gap: 6px;
-      padding: 4px 12px;
-      border-radius: 24px;
+      min-height: 40px;
+      font-size: 11px;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
     }
 
     .widget-size-medium .iheard-widget-button {
-      min-height: 60px;
-      font-size: 14px;
-      gap: 8px;
-      padding: 4px 16px;
-      border-radius: 30px;
+      min-height: 48px;
+      font-size: 13px;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 25px;
     }
 
     .widget-size-large .iheard-widget-button {
-      min-height: 72px;
-      font-size: 16px;
-      gap: 10px;
-      padding: 4px 20px;
-      border-radius: 36px;
+      min-height: 56px;
+      font-size: 14px;
+      gap: 8px;
+      padding: 4px 16px;
+      border-radius: 28px;
     }
 
     /* Icon-only buttons (no text) should be circular */
     .widget-size-small .iheard-widget-button:not(:has(.button-text)) {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      padding: 0;
+    }
+
+    .widget-size-medium .iheard-widget-button:not(:has(.button-text)) {
       width: 48px;
       height: 48px;
       border-radius: 50%;
       padding: 0;
     }
 
-    .widget-size-medium .iheard-widget-button:not(:has(.button-text)) {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      padding: 0;
-    }
-
     .widget-size-large .iheard-widget-button:not(:has(.button-text)) {
-      width: 72px;
-      height: 72px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       padding: 0;
     }
@@ -81,18 +81,18 @@ export function createComponentStyles() {
     }
 
     .widget-size-small .iheard-widget-button.icon-only {
+      width: 40px;
+      height: 40px;
+    }
+
+    .widget-size-medium .iheard-widget-button.icon-only {
       width: 48px;
       height: 48px;
     }
 
-    .widget-size-medium .iheard-widget-button.icon-only {
-      width: 60px;
-      height: 60px;
-    }
-
     .widget-size-large .iheard-widget-button.icon-only {
-      width: 72px;
-      height: 72px;
+      width: 56px;
+      height: 56px;
     }
 
     .iheard-widget-button:hover {
@@ -274,9 +274,9 @@ export function createComponentStyles() {
     .iheard-chat-header-rect {
       background: rgba(0, 0, 0, 0.6) !important;
       border-radius: 25px;
-      padding: 10px 38px;
-      margin: 15px 10px 10px 10px;
-      width: calc(100% - 20px);
+      padding: 6px 20px;
+      margin: 8px 6px 6px 6px;
+      width: calc(100% - 12px);
       height: auto;
       max-width: 420px;
       display: flex;

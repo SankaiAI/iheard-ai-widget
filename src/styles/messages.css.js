@@ -22,7 +22,7 @@ export function createMessageStyles() {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden; /* Prevent horizontal scroll */
-      padding: 20px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 12px;
