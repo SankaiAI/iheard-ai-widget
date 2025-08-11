@@ -91,9 +91,56 @@ export function startConfigPolling(agentId, intervalMs = 300000) { // 5 minutes 
   }
 
   // Start new polling interval with smart conditions
-  const interval = setInterval(() => {
+  const interval = setInterval(async () => {
     if (agentId && shouldPollConfig()) {
-      loadAgentConfig(agentId, true); // Silent polling
+      try {
+        const result = await loadAgentConfig(agentId, true); // Silent polling
+        if (result === false) {
+          // Configuration failed to load - could be 403, 404, or network error
+          console.warn('⚠️ Configuration polling failed - agent may be inactive or disabled');
+          
+          // Check if this is a 403 error by testing the endpoint
+          try {
+            const response = await fetch(`https://iheard-ai-widget.pages.dev/api/config?agentId=${agentId}`);
+            if (response.status === 403) {
+              console.error('❌ Agent is not active or enabled - stopping polling');
+              // Stop the current polling interval
+              clearInterval(interval);
+              setConfigPollingInterval(null);
+              
+              // Show user-friendly message
+              const widget = document.getElementById('iheard-ai-widget');
+              if (widget) {
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                  position: fixed;
+                  top: 20px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  background: #fee2e2;
+                  border: 1px solid #fca5a5;
+                  color: #dc2626;
+                  padding: 12px 16px;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  z-index: 1000000;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                  max-width: 400px;
+                  text-align: center;
+                `;
+                errorDiv.innerHTML = '⚠️ Widget configuration is no longer active. Please contact support.';
+                document.body.appendChild(errorDiv);
+                
+                setTimeout(() => errorDiv.remove(), 10000); // Remove after 10 seconds
+              }
+            }
+          } catch (fetchError) {
+            console.warn('⚠️ Unable to check agent status:', fetchError.message);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Error during configuration polling:', error.message);
+      }
     }
   }, intervalMs);
 
