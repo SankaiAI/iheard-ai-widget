@@ -754,6 +754,15 @@ export function updateWidgetAppearance(widget) {
     }
   }
   
+  // Update widget size classes
+  if (widget && widgetConfig.widgetSize) {
+    // Remove old widget size classes
+    widget.className = widget.className.replace(/widget-size-\S+/g, '').trim();
+    // Add new widget size class
+    widget.classList.add(`widget-size-${widgetConfig.widgetSize}`);
+    console.log('📏 Widget size updated to:', widgetConfig.widgetSize);
+  }
+  
   // Update enabled/disabled state visibility
   if (widgetConfig.isEnabled === false) {
     widget.style.display = 'none';

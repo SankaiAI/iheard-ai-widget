@@ -29,6 +29,7 @@ export const defaultConfig = {
   gradientDirection: 'to right',
   glassEffect: true,
   widgetStyle: 'eye-animation',
+  widgetSize: 'medium',
   showButtonText: true,
   chatBackgroundColor: 'transparent',
   useDefaultAppearance: true,

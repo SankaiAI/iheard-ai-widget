@@ -14,6 +14,7 @@ export function createComponentStyles() {
       cursor: pointer;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       padding: 12px 16px;
       font-size: 14px;
@@ -22,6 +23,35 @@ export function createComponentStyles() {
       transition: all 0.3s ease;
       outline: none;
       user-select: none;
+      /* Default medium size */
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+    }
+
+    /* Widget Button Size Variations */
+    .widget-size-small .iheard-widget-button {
+      width: 48px;
+      height: 48px;
+      padding: 9px 12px;
+      font-size: 12px;
+      gap: 6px;
+    }
+
+    .widget-size-medium .iheard-widget-button {
+      width: 60px;
+      height: 60px;
+      padding: 12px 16px;
+      font-size: 14px;
+      gap: 8px;
+    }
+
+    .widget-size-large .iheard-widget-button {
+      width: 72px;
+      height: 72px;
+      padding: 15px 20px;
+      font-size: 16px;
+      gap: 10px;
     }
 
     .iheard-widget-button:hover {
@@ -64,6 +94,37 @@ export function createComponentStyles() {
       transform-origin: center;
     }
 
+    /* Eye Logo Size Variations */
+    .widget-size-small .iheard-eye-logo {
+      width: 22px;
+      height: 22px;
+    }
+
+    .widget-size-small .iheard-eye-logo::before {
+      width: 11px;
+      height: 11px;
+    }
+
+    .widget-size-medium .iheard-eye-logo {
+      width: 28px;
+      height: 28px;
+    }
+
+    .widget-size-medium .iheard-eye-logo::before {
+      width: 14px;
+      height: 14px;
+    }
+
+    .widget-size-large .iheard-eye-logo {
+      width: 34px;
+      height: 34px;
+    }
+
+    .widget-size-large .iheard-eye-logo::before {
+      width: 17px;
+      height: 17px;
+    }
+
     /* Widget Avatar Styles */
     .iheard-widget-avatar {
       width: 32px;
@@ -94,6 +155,56 @@ export function createComponentStyles() {
       color: white;
       font-weight: bold;
       font-size: 16px;
+    }
+
+    /* Avatar Size Variations */
+    .widget-size-small .iheard-widget-avatar {
+      width: 26px;
+      height: 26px;
+    }
+
+    .widget-size-small .iheard-widget-avatar-placeholder {
+      width: 26px;
+      height: 26px;
+      font-size: 13px;
+    }
+
+    .widget-size-medium .iheard-widget-avatar {
+      width: 32px;
+      height: 32px;
+    }
+
+    .widget-size-medium .iheard-widget-avatar-placeholder {
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+    }
+
+    .widget-size-large .iheard-widget-avatar {
+      width: 38px;
+      height: 38px;
+    }
+
+    .widget-size-large .iheard-widget-avatar-placeholder {
+      width: 38px;
+      height: 38px;
+      font-size: 19px;
+    }
+
+    /* SVG Icon Size Variations */
+    .widget-size-small .iheard-widget-button svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .widget-size-medium .iheard-widget-button svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .widget-size-large .iheard-widget-button svg {
+      width: 28px;
+      height: 28px;
     }
 
     /* Chat Header */
