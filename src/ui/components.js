@@ -103,6 +103,9 @@ function createWidgetButton() {
   // Add button text if enabled
   if (widgetConfig.showButtonText) {
     button.innerHTML += `<span class="button-text">${widgetConfig.buttonText}</span>`;
+  } else {
+    // Add icon-only class for browsers without :has() support
+    button.classList.add('icon-only');
   }
 
   return button;
@@ -118,8 +121,13 @@ function updateWidgetButtonContent(button, config) {
   const existingButtonText = button.querySelector('.button-text');
   let buttonTextHTML = '';
   
-  if (existingButtonText && config.showButtonText) {
+  if (config.showButtonText && config.buttonText) {
     buttonTextHTML = `<span class="button-text">${config.buttonText}</span>`;
+    // Remove icon-only class if button text is enabled
+    button.classList.remove('icon-only');
+  } else {
+    // Add icon-only class for browsers without :has() support
+    button.classList.add('icon-only');
   }
   
   // Update button content based on style

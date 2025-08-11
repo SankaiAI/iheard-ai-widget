@@ -5,53 +5,94 @@
 
 export function createComponentStyles() {
   return `
-    /* Widget Button */
+    /* Widget Button - Base Styles */
     .iheard-widget-button {
-      background: #4f46e5; /* Same as AI badge background */
+      background: #4f46e5;
       border: none;
-      border-radius: 50px;
       color: white;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 12px 16px;
-      font-size: 14px;
       font-weight: 500;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       transition: all 0.3s ease;
       outline: none;
       user-select: none;
-      /* Default medium size */
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
+      /* Default styling */
+      border-radius: 30px;
+      padding: 12px 16px;
+      font-size: 14px;
+      min-height: 60px;
     }
 
     /* Widget Button Size Variations */
     .widget-size-small .iheard-widget-button {
-      width: 48px;
-      height: 48px;
-      padding: 9px 12px;
+      min-height: 48px;
       font-size: 12px;
       gap: 6px;
+      padding: 9px 12px;
+      border-radius: 24px;
     }
 
     .widget-size-medium .iheard-widget-button {
-      width: 60px;
-      height: 60px;
-      padding: 12px 16px;
+      min-height: 60px;
       font-size: 14px;
       gap: 8px;
+      padding: 12px 16px;
+      border-radius: 30px;
     }
 
     .widget-size-large .iheard-widget-button {
-      width: 72px;
-      height: 72px;
-      padding: 15px 20px;
+      min-height: 72px;
       font-size: 16px;
       gap: 10px;
+      padding: 15px 20px;
+      border-radius: 36px;
+    }
+
+    /* Icon-only buttons (no text) should be circular */
+    .widget-size-small .iheard-widget-button:not(:has(.button-text)) {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      padding: 0;
+    }
+
+    .widget-size-medium .iheard-widget-button:not(:has(.button-text)) {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      padding: 0;
+    }
+
+    .widget-size-large .iheard-widget-button:not(:has(.button-text)) {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      padding: 0;
+    }
+
+    /* Fallback for browsers without :has() support */
+    .iheard-widget-button.icon-only {
+      border-radius: 50% !important;
+      padding: 0 !important;
+    }
+
+    .widget-size-small .iheard-widget-button.icon-only {
+      width: 48px;
+      height: 48px;
+    }
+
+    .widget-size-medium .iheard-widget-button.icon-only {
+      width: 60px;
+      height: 60px;
+    }
+
+    .widget-size-large .iheard-widget-button.icon-only {
+      width: 72px;
+      height: 72px;
     }
 
     .iheard-widget-button:hover {
