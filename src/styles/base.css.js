@@ -11,6 +11,13 @@ export function createBaseStyles() {
       z-index: 999999 !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Helvetica Neue", Arial, sans-serif !important;
       pointer-events: none !important;
+      opacity: 0 !important;
+      transition: opacity 0.3s ease !important;
+    }
+
+    /* Show widget only after configuration is loaded */
+    .iheard-widget-container.configured {
+      opacity: 1 !important;
     }
 
     .iheard-widget-container * {

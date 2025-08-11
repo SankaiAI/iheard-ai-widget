@@ -193,11 +193,27 @@
 
       // Update widget appearance with loaded configuration
       modules.ui.updateWidgetAppearance(widget);
+      
+      // Show widget with smooth fade-in after configuration is applied
+      const widgetContainer = widget.querySelector('.iheard-widget-container');
+      if (widgetContainer) {
+        widgetContainer.classList.add('configured');
+        console.log('✨ Widget configuration completed - showing widget');
+      }
 
       // Start configuration polling if needed
       if (agentId && modules.core.widgetConfig.isActive) {
         modules.api.startConfigPolling(agentId);
       }
+
+      // Fallback: ensure widget shows after maximum 2 seconds
+      setTimeout(() => {
+        const widgetContainer = widget.querySelector('.iheard-widget-container');
+        if (widgetContainer && !widgetContainer.classList.contains('configured')) {
+          widgetContainer.classList.add('configured');
+          console.log('⏰ Widget shown via fallback timeout');
+        }
+      }, 2000);
 
       console.log('✅ iHeardAI Widget (Modular) initialized successfully');
       
