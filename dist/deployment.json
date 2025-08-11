@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "buildDate": "2025-08-11T16:32:36.752Z",
+  "buildDate": "2025-08-11T16:38:05.275Z",
   "files": [
     {
       "name": "widget.min.js",
@@ -17,11 +17,11 @@
       "url": "https://cdn.iheard.ai/widget-1.0.0.min.js"
     },
     {
-      "name": "widget-62afc838.min.js",
-      "path": "/widget-62afc838.min.js",
+      "name": "widget-3ad70622.min.js",
+      "path": "/widget-3ad70622.min.js",
       "size": 6369,
       "type": "application/javascript",
-      "url": "https://cdn.iheard.ai/widget-62afc838.min.js"
+      "url": "https://cdn.iheard.ai/widget-3ad70622.min.js"
     }
   ],
   "cdn": {
@@ -38,6 +38,6 @@
   "integration": {
     "scriptTag": "<script src=\"https://cdn.iheard.ai/widget.min.js\"></script>",
     "versionedScriptTag": "<script src=\"https://cdn.iheard.ai/widget-1.0.0.min.js\"></script>",
-    "hashedScriptTag": "<script src=\"https://cdn.iheard.ai/widget-62afc838.min.js\"></script>"
+    "hashedScriptTag": "<script src=\"https://cdn.iheard.ai/widget-3ad70622.min.js\"></script>"
   }
 }
