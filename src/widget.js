@@ -195,9 +195,9 @@
       modules.ui.updateWidgetAppearance(widget);
       
       // Show widget with smooth fade-in after configuration is applied
-      const widgetContainer = widget.querySelector('.iheard-widget-container');
-      if (widgetContainer) {
-        widgetContainer.classList.add('configured');
+      // The widget itself IS the container, not a child element
+      if (widget && widget.classList.contains('iheard-widget-container')) {
+        widget.classList.add('configured');
         console.log('✨ Widget configuration completed - showing widget');
       }
 
@@ -208,9 +208,8 @@
 
       // Fallback: ensure widget shows after maximum 2 seconds
       setTimeout(() => {
-        const widgetContainer = widget.querySelector('.iheard-widget-container');
-        if (widgetContainer && !widgetContainer.classList.contains('configured')) {
-          widgetContainer.classList.add('configured');
+        if (widget && widget.classList.contains('iheard-widget-container') && !widget.classList.contains('configured')) {
+          widget.classList.add('configured');
           console.log('⏰ Widget shown via fallback timeout');
         }
       }, 2000);
