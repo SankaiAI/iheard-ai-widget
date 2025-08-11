@@ -389,6 +389,29 @@ export function createComponentStyles() {
       text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
       letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .iheard-online-status {
+      color: #10b981;
+      font-size: 12px;
+      text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+      animation: onlinePulse 2s ease-in-out infinite;
+      background: none !important;
+      -webkit-text-fill-color: #10b981 !important;
+    }
+
+    @keyframes onlinePulse {
+      0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+      }
+      50% {
+        opacity: 0.7;
+        text-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+      }
     }
 
     .iheard-ai-agent-label {

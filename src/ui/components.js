@@ -261,7 +261,15 @@ function createChatHeader() {
   
   const titleElement = document.createElement('h3');
   titleElement.className = 'iheard-chat-title';
-  titleElement.textContent = widgetConfig.agentName;
+  
+  // Create online status indicator
+  const statusIndicator = document.createElement('span');
+  statusIndicator.className = 'iheard-online-status';
+  statusIndicator.innerHTML = '●';
+  
+  // Add status and agent name
+  titleElement.appendChild(statusIndicator);
+  titleElement.appendChild(document.createTextNode(widgetConfig.agentName));
   
   const aiAgentLabel = document.createElement('span');
   aiAgentLabel.className = 'iheard-ai-agent-label';
@@ -600,7 +608,19 @@ export function updateWidgetAppearance(widget) {
   if (chatTitle) {
     // Use agentName instead of chatTitle for the main title
     const titleText = widgetConfig.agentName || widgetConfig.chatTitle || 'AI Assistant';
-    chatTitle.textContent = titleText;
+    
+    // Clear existing content and rebuild with status indicator
+    chatTitle.innerHTML = '';
+    
+    // Create online status indicator
+    const statusIndicator = document.createElement('span');
+    statusIndicator.className = 'iheard-online-status';
+    statusIndicator.innerHTML = '●';
+    
+    // Add status and agent name
+    chatTitle.appendChild(statusIndicator);
+    chatTitle.appendChild(document.createTextNode(titleText));
+    
     console.log('🏷️ Chat title updated to:', titleText);
   }
   
