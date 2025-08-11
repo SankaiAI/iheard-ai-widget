@@ -1,0 +1,16 @@
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+  Access-Control-Allow-Headers: *
+  Cross-Origin-Embedder-Policy: unsafe-none
+  Cross-Origin-Resource-Policy: cross-origin
+
+/*.js
+  Access-Control-Allow-Origin: *
+  Content-Type: application/javascript
+  Cross-Origin-Resource-Policy: cross-origin
+
+/*.css
+  Access-Control-Allow-Origin: *
+  Content-Type: text/css
+  Cross-Origin-Resource-Policy: cross-origin
