@@ -255,9 +255,10 @@ export function createMobileStyles() {
       }
       
       .assistant-message .message-content {
-        background: #334155 !important;
+        background: transparent !important;
         color: #f1f5f9 !important;
-        border-color: rgba(255, 255, 255, 0.1) !important;
+        border: none !important;
+        box-shadow: none !important;
       }
       
       .iheard-input:not(.default-appearance) {

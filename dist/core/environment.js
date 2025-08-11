@@ -24,7 +24,7 @@ export function getEnvironmentConfig() {
 
   if (isLocalDevelopment) {
     // Local development - Use localhost URLs as defaults
-    config.textAgentUrl = window.IHEARD_TEXT_AGENT_URL || 'http://localhost:8002';
+    config.textAgentUrl = window.IHEARD_TEXT_AGENT_URL || 'http://localhost:8080';
     config.voiceAgentUrl = window.IHEARD_VOICE_AGENT_URL || 'http://localhost:8001';
     config.widgetUrl = window.IHEARD_WIDGET_URL || 'http://localhost:3000/widget.js';
     
@@ -72,8 +72,8 @@ export function getTextAgentUrl() {
                               window.location.hostname.endsWith('.local');
     
     if (isLocalDevelopment) {
-      console.warn('⚠️ TEXT_AGENT_URL not configured, using localhost:8002 default');
-      return 'http://localhost:8002';
+      console.warn('⚠️ TEXT_AGENT_URL not configured, using localhost:8080 default');
+      return 'http://localhost:8080';
     } else {
       throw new Error('TEXT_AGENT_URL environment variable is not configured. Please set it in Cloudflare environment variables.');
     }

@@ -165,11 +165,24 @@ function createChatHeader() {
   const avatar = createAvatar();
   titleGroup.appendChild(avatar);
 
-  // Create title and status
+  // Create title and status container
+  const titleContainer = document.createElement('div');
+  titleContainer.className = 'iheard-title-container';
+  
   const titleElement = document.createElement('h3');
   titleElement.className = 'iheard-chat-title';
   titleElement.textContent = widgetConfig.agentName;
-  titleGroup.appendChild(titleElement);
+  
+  const aiAgentLabel = document.createElement('span');
+  aiAgentLabel.className = 'iheard-ai-agent-label';
+  aiAgentLabel.innerHTML = `
+    <span class="ai-badge">AI</span>
+    <span class="agent-text">Agent</span>
+  `;
+  
+  titleContainer.appendChild(titleElement);
+  titleContainer.appendChild(aiAgentLabel);
+  titleGroup.appendChild(titleContainer);
 
   // Create call section with CC toggle
   const callSection = createCallSection();
@@ -362,7 +375,12 @@ export function updateCallButtonState(state) {
       
     case 'disconnected':
     default:
-      callBtn.style.background = 'rgba(34, 197, 94, 0.9)';
+      // Use the same color as widget button and send button
+      if (widgetConfig.gradientEnabled) {
+        callBtn.style.background = `linear-gradient(45deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+      } else {
+        callBtn.style.background = widgetConfig.primaryColor;
+      }
       callBtn.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="4" y="11" width="2" height="2" rx="1" fill="currentColor"/>
@@ -489,9 +507,11 @@ export function updateWidgetAppearance(widget) {
   
   // Update chat title
   const chatTitle = widget.querySelector('.iheard-chat-title');
-  if (chatTitle && widgetConfig.chatTitle) {
-    chatTitle.textContent = widgetConfig.chatTitle;
-    console.log('🏷️ Chat title updated to:', widgetConfig.chatTitle);
+  if (chatTitle) {
+    // Use agentName instead of chatTitle for the main title
+    const titleText = widgetConfig.agentName || widgetConfig.chatTitle || 'AI Assistant';
+    chatTitle.textContent = titleText;
+    console.log('🏷️ Chat title updated to:', titleText);
   }
   
   // Update button text visibility and content
@@ -550,6 +570,91 @@ export function updateWidgetAppearance(widget) {
     
     avatarContainer.appendChild(gradientWrapper);
   }
+  
+  // Update call button, user message bubble, and send button colors
+  const callButton = widget.querySelector('.iheard-call-btn');
+  const sendButton = widget.querySelector('.iheard-action-btn');
+  
+  if (callButton) {
+    // Update call button to use primary color instead of green gradient
+    if (widgetConfig.gradientEnabled) {
+      callButton.style.background = `linear-gradient(45deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      callButton.style.background = widgetConfig.primaryColor;
+    }
+    console.log('📞 Call button color updated to:', widgetConfig.primaryColor);
+  }
+  
+  if (sendButton) {
+    // Update send button background to use primary color, keep icon white
+    if (widgetConfig.gradientEnabled) {
+      sendButton.style.background = `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      sendButton.style.background = widgetConfig.primaryColor;
+    }
+    sendButton.style.color = 'white'; // Always keep icon white
+    console.log('📤 Send button background updated to:', widgetConfig.primaryColor);
+  }
+  
+  // Update user message bubbles to use primary color
+  const userMessages = widget.querySelectorAll('.user-message .message-content');
+  userMessages.forEach(messageContent => {
+    if (widgetConfig.gradientEnabled) {
+      messageContent.style.background = `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      messageContent.style.background = widgetConfig.primaryColor;
+    }
+  });
+  
+  // Update end chat button to use primary color
+  const endChatButton = widget.querySelector('.iheard-end-chat-btn');
+  if (endChatButton) {
+    if (widgetConfig.gradientEnabled) {
+      endChatButton.style.background = `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`;
+    } else {
+      endChatButton.style.background = widgetConfig.primaryColor;
+    }
+    console.log('📞 End chat button color updated to:', widgetConfig.primaryColor);
+  }
+  
+  // Create dynamic style for future user messages
+  let userMessageStyle = document.getElementById('iheard-dynamic-user-message-style');
+  if (!userMessageStyle) {
+    userMessageStyle = document.createElement('style');
+    userMessageStyle.id = 'iheard-dynamic-user-message-style';
+    document.head.appendChild(userMessageStyle);
+  }
+  
+  const userMessageBackground = widgetConfig.gradientEnabled 
+    ? `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`
+    : widgetConfig.primaryColor;
+    
+  userMessageStyle.textContent = `
+    .user-message .message-content {
+      background: ${userMessageBackground} !important;
+    }
+  `;
+  
+  // Create dynamic style for end chat button
+  let endChatButtonStyle = document.getElementById('iheard-dynamic-end-chat-button-style');
+  if (!endChatButtonStyle) {
+    endChatButtonStyle = document.createElement('style');
+    endChatButtonStyle.id = 'iheard-dynamic-end-chat-button-style';
+    document.head.appendChild(endChatButtonStyle);
+  }
+  
+  const endChatButtonBackground = widgetConfig.gradientEnabled 
+    ? `linear-gradient(135deg, ${widgetConfig.gradientColor1}, ${widgetConfig.gradientColor2})`
+    : widgetConfig.primaryColor;
+    
+  endChatButtonStyle.textContent = `
+    .iheard-end-chat-btn {
+      background: ${endChatButtonBackground} !important;
+    }
+  `;
+  
+  console.log('💬 User message bubble colors updated to:', userMessageBackground);
+  console.log('📞 End chat button dynamic style updated to:', endChatButtonBackground);
   
   // Update widget style classes
   if (widget && widgetConfig.widgetStyle) {

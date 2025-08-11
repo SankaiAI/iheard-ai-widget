@@ -18,7 +18,10 @@ import {
   addAgentMessage, 
   sendTextMessage,
   showWelcomeMessage,
-  getMessageCount 
+  getMessageCount,
+  restoreChatHistory,
+  startEndChatTimer,
+  clearEndChatTimer
 } from './messaging.js';
 import { toggleTranscription } from './transcription.js';
 import { 
@@ -80,11 +83,27 @@ export function setupEventListeners(widget) {
     }
 
     if (newIsOpen && input) {
-      // Show welcome message if this is the first time opening and no messages exist
-      if (widgetConfig.welcomeMessage && getMessageCount() === 0) {
+      // Load chat history when opening chat for the first time
+      if (getMessageCount() === 0) {
         const messagesContainer = chatInterface.querySelector('.iheard-chat-messages');
         if (messagesContainer) {
-          showWelcomeMessage(widgetConfig.welcomeMessage, messagesContainer);
+          // Try to restore chat history first
+          restoreChatHistory(messagesContainer).then((historyLoaded) => {
+            // Only show welcome message if no history was loaded
+            if (!historyLoaded && widgetConfig.welcomeMessage) {
+              showWelcomeMessage(widgetConfig.welcomeMessage, messagesContainer);
+            }
+            // Start end chat timer after loading history
+            if (historyLoaded || getMessageCount() > 0) {
+              startEndChatTimer();
+            }
+          }).catch((error) => {
+            console.warn('Failed to restore chat history:', error);
+            // Show welcome message as fallback
+            if (widgetConfig.welcomeMessage) {
+              showWelcomeMessage(widgetConfig.welcomeMessage, messagesContainer);
+            }
+          });
         }
       }
       
@@ -105,6 +124,7 @@ export function setupEventListeners(widget) {
     }
     
     setOpen(false);
+    clearEndChatTimer(); // Clear end chat timer when closing
     chatInterface.style.display = 'none';
     chatInterface.classList.remove('iheard-chat-open');
     
@@ -180,6 +200,16 @@ export function setupInputEventHandlers(input, actionBtn) {
     if (e.key === 'Enter') {
       handleSend();
     }
+  });
+  
+  // Restart end chat timer on input activity
+  input.addEventListener('input', () => {
+    startEndChatTimer();
+  });
+  
+  // Also restart on focus (when user clicks in input)
+  input.addEventListener('focus', () => {
+    startEndChatTimer();
   });
 }
 

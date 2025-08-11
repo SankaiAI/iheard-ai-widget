@@ -22,10 +22,10 @@ export const defaultConfig = {
   buttonText: 'Ask AI Assistant',
   chatTitle: 'AI Sales Assistant',
   inputPlaceholder: 'Ask me anything about our products...',
-  primaryColor: '#ee5cee',
+  primaryColor: '#4f46e5',
   gradientEnabled: false,
-  gradientColor1: '#ee5cee',
-  gradientColor2: '#31d1d1',
+  gradientColor1: '#4f46e5',
+  gradientColor2: '#7c3aed',
   gradientDirection: 'to right',
   glassEffect: true,
   widgetStyle: 'eye-animation',
@@ -74,6 +74,7 @@ export function getInitialConfig() {
   let apiKey = null;
   let agentId = null;
   let serverUrl = null;
+  let configFromUrl = {};
 
   // Get parameters from script tag src
   const scripts = document.querySelectorAll('script[src*="widget"]');
@@ -86,6 +87,25 @@ export function getInitialConfig() {
     if (!apiKey) apiKey = scriptUrl.searchParams.get('apiKey');
     if (!agentId) agentId = scriptUrl.searchParams.get('agentId');
     if (!serverUrl) serverUrl = scriptUrl.searchParams.get('serverUrl');
+    
+    // Extract configuration parameters from URL
+    const agentName = scriptUrl.searchParams.get('agentName');
+    const avatar = scriptUrl.searchParams.get('avatar');
+    const primaryColor = scriptUrl.searchParams.get('primaryColor');
+    const position = scriptUrl.searchParams.get('position');
+    const voiceEnabled = scriptUrl.searchParams.get('voiceEnabled');
+    const chatEnabled = scriptUrl.searchParams.get('chatEnabled');
+    const isActive = scriptUrl.searchParams.get('isActive');
+    const isEnabled = scriptUrl.searchParams.get('isEnabled');
+    
+    if (agentName) configFromUrl.agentName = agentName;
+    if (avatar) configFromUrl.avatar = avatar;
+    if (primaryColor) configFromUrl.primaryColor = primaryColor;
+    if (position) configFromUrl.position = position;
+    if (voiceEnabled) configFromUrl.voiceEnabled = voiceEnabled === 'true';
+    if (chatEnabled) configFromUrl.chatEnabled = chatEnabled === 'true';
+    if (isActive) configFromUrl.isActive = isActive === 'true';
+    if (isEnabled) configFromUrl.isEnabled = isEnabled === 'true';
   }
 
   // Fallback to URL parameters
@@ -100,11 +120,13 @@ export function getInitialConfig() {
   console.log('🔍 Stored currentAgentId:', agentId);
   console.log('🔍 Stored currentApiKey:', apiKey ? 'Present' : 'Not provided');
   console.log('🔍 Stored currentServerUrl:', serverUrl || 'Not provided');
+  console.log('🔍 Config from URL:', configFromUrl);
 
   return {
     apiKey,
     agentId,
-    serverUrl
+    serverUrl,
+    configFromUrl
   };
 }
 

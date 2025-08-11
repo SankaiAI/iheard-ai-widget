@@ -39,20 +39,38 @@ export function getTextAgentUrl() {
  * Send message to text agent
  * @param {string} message - User message
  * @param {string} sessionId - Session ID for conversation tracking
+ * @param {Object} userContext - User context for store-specific search
  * @returns {Promise<Object>} Agent response
  */
-export async function sendMessageToAgent(message, sessionId) {
+export async function sendMessageToAgent(message, sessionId, userContext = {}) {
   const textAgentUrl = getTextAgentUrl();
+  
+  // Build request payload with user context
+  const payload = {
+    message: message,
+    session_id: sessionId,
+    user_metadata: userContext.metadata || {}
+  };
+  
+  // Add user identification if available
+  if (userContext.user_id) {
+    payload.user_id = userContext.user_id;
+  }
+  
+  if (userContext.agent_key) {
+    payload.agent_key = userContext.agent_key;
+  }
+  
+  if (userContext.store_id) {
+    payload.store_id = userContext.store_id;
+  }
   
   const response = await fetch(`${textAgentUrl}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      message: message,
-      session_id: sessionId
-    })
+    body: JSON.stringify(payload)
   });
 
   if (!response.ok) {

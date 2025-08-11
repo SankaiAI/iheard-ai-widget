@@ -7,8 +7,8 @@ export function createAnimationStyles() {
   return `
     /* Keyframe Animations */
     @keyframes eyeBlink {
-      0%, 90%, 100% { transform: scaleY(1); }
-      95% { transform: scaleY(0.1); }
+      0%, 85%, 100% { transform: scaleY(1); }
+      90%, 95% { transform: scaleY(0.1); }
     }
 
     @keyframes pulse {

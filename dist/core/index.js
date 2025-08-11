@@ -38,6 +38,7 @@ export const {
   currentUserMessage,
   currentAssistantMessage,
   currentAgentId,
+  currentCustomerId,
   configPollingInterval,
   setOpen,
   setVoiceConnected,
@@ -45,6 +46,7 @@ export const {
   setCurrentUserMessage,
   setCurrentAssistantMessage,
   setCurrentAgentId,
+  setCurrentCustomerId,
   setConfigPollingInterval,
   resetState,
   setApiCredentials
@@ -61,6 +63,9 @@ export {
   getConfigApiUrl,
   validateEnvironmentConfig
 } from './environment.js';
+
+// Import customer ID generation
+import { generateCustomerId } from './customer-id.js';
 
 /**
  * Initialize core configuration system
@@ -82,6 +87,18 @@ export async function initializeConfiguration() {
     console.log('🔍 Extracting initial configuration...');
     const initialConfig = getInitialConfig();
     
+    // Apply configuration from dashboard global variable (immediate)
+    if (window.iHeardConfigFromDashboard) {
+      console.log('🎨 Applying dashboard configuration immediately:', window.iHeardConfigFromDashboard);
+      updateConfig(window.iHeardConfigFromDashboard);
+    }
+    
+    // Apply URL configuration immediately to avoid default settings flash
+    if (initialConfig.configFromUrl && Object.keys(initialConfig.configFromUrl).length > 0) {
+      console.log('🎨 Applying URL configuration immediately:', initialConfig.configFromUrl);
+      updateConfig(initialConfig.configFromUrl);
+    }
+    
     // Set API credentials if available
     if (initialConfig.apiKey || initialConfig.agentId || initialConfig.serverUrl) {
       console.log('🔐 Setting API credentials...');
@@ -89,6 +106,12 @@ export async function initializeConfiguration() {
     } else {
       console.log('⚠️ No API credentials found in URL parameters');
     }
+    
+    // Generate and set customer ID for conversation continuity
+    console.log('👤 Generating customer ID for conversation tracking...');
+    const customerId = generateCustomerId();
+    stateModule.setCurrentCustomerId(customerId);
+    console.log('✅ Customer ID set:', customerId);
     
     console.log('✅ Core configuration initialized');
   } catch (error) {

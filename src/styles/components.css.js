@@ -50,16 +50,18 @@ export function createComponentStyles() {
       justify-content: center;
       position: relative;
       overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
 
     .iheard-eye-logo::before {
       content: '';
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       background: #333;
       border-radius: 50%;
       position: absolute;
-      animation: eyeBlink 3s infinite;
+      animation: eyeBlink 2s infinite;
+      transform-origin: center;
     }
 
     /* Chat Header */

@@ -9,6 +9,7 @@ import {
   currentApiKey,
   currentAgentId,
   currentServerUrl,
+  currentCustomerId,
   isVoiceConnected,
   voiceActivityDetector,
   isUserSpeaking,
@@ -143,7 +144,9 @@ export async function connectToLiveKit() {
       body: JSON.stringify({
         api_key: apiKey,
         room_name: roomName,
-        participant_name: 'User'
+        participant_name: 'User',
+        customer_id: currentCustomerId,  // Pass customer ID for shared conversation
+        agent_key: apiKey  // Use api_key as agent_key for database lookup
       })
     });
 

@@ -32,3 +32,16 @@ export {
   sanitizeMessage,
   truncateMessage
 } from './utils.js';
+
+export {
+  ChatHistoryService,
+  getChatHistoryService,
+  resetChatHistoryService,
+  chatHistory
+} from './chat-history.js';
+
+export {
+  UnifiedConversationManager,
+  createUnifiedConversation,
+  detectModeSwitch
+} from './unified-conversation.js';

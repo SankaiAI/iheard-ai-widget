@@ -22,6 +22,7 @@ export let isUserSpeaking = false;
 export let currentApiKey = null;
 export let currentAgentId = null;
 export let currentServerUrl = null;
+export let currentCustomerId = null;
 
 /**
  * UI state
@@ -86,6 +87,11 @@ export function setApiCredentials(apiKey, agentId, serverUrl) {
   currentServerUrl = serverUrl;
 }
 
+export function setCurrentCustomerId(customerId) {
+  currentCustomerId = customerId;
+  console.log('👤 Current customer ID updated:', customerId);
+}
+
 /**
  * Update UI state
  */
@@ -138,6 +144,7 @@ export function getState() {
     currentApiKey,
     currentAgentId,
     currentServerUrl,
+    currentCustomerId,
     
     // UI
     currentUserMessage,
@@ -171,6 +178,7 @@ export function resetState() {
   currentApiKey = null;
   currentAgentId = null;
   currentServerUrl = null;
+  currentCustomerId = null;
   currentUserMessage = null;
   currentAssistantMessage = null;
   lastTranscriptionReceived = false;

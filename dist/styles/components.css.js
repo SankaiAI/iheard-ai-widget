@@ -7,7 +7,7 @@ export function createComponentStyles() {
   return `
     /* Widget Button */
     .iheard-widget-button {
-      background: var(--primary-color, #ee5cee);
+      background: #4f46e5; /* Same as AI badge background */
       border: none;
       border-radius: 50px;
       color: white;
@@ -50,16 +50,18 @@ export function createComponentStyles() {
       justify-content: center;
       position: relative;
       overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
 
     .iheard-eye-logo::before {
       content: '';
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       background: #333;
       border-radius: 50%;
       position: absolute;
-      animation: eyeBlink 3s infinite;
+      animation: eyeBlink 2s infinite;
+      transform-origin: center;
     }
 
     /* Chat Header */
@@ -184,11 +186,74 @@ export function createComponentStyles() {
       font-size: 14px;
     }
 
+    .iheard-title-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
     .iheard-chat-title {
-      font-size: 15px;
-      font-weight: 600;
+      font-size: 16px;
+      font-weight: 700;
       margin: 0;
+      background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd);
+      background-size: 300% 300%;
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 4s ease-in-out infinite;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      letter-spacing: 0.3px;
+    }
+
+    .iheard-ai-agent-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    }
+
+    .ai-badge {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
       color: white;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      animation: aiGlow 3s ease-in-out infinite;
+    }
+
+    .agent-text {
+      font-size: 8px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.75);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      opacity: 0.8;
+    }
+
+    @keyframes aiGlow {
+      0%, 100% { 
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transform: scale(1);
+      }
+      50% { 
+        box-shadow: 0 3px 8px rgba(79, 70, 229, 0.4);
+        transform: scale(1.02);
+      }
+    }
+
+    @keyframes callButtonGradient {
+      0%, 100% { 
+        background-position: 0% 50%;
+      }
+      50% { 
+        background-position: 100% 50%;
+      }
     }
 
     .iheard-status-indicator {
@@ -270,7 +335,7 @@ export function createComponentStyles() {
 
     /* Call Button */
     .iheard-call-btn {
-      background: rgba(34, 197, 94, 0.9);
+      background: #4f46e5; /* Same as AI badge background */
       border: none;
       color: white;
       cursor: pointer;
@@ -285,7 +350,7 @@ export function createComponentStyles() {
     }
 
     .iheard-call-btn:hover {
-      background: rgba(34, 197, 94, 1);
+      opacity: 0.9;
       transform: translateY(-1px);
     }
 
