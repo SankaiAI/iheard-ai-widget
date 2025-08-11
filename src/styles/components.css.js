@@ -41,8 +41,8 @@ export function createComponentStyles() {
 
     /* Eye Logo Animation */
     .iheard-eye-logo {
-      width: 20px;
-      height: 20px;
+      width: 28px;
+      height: 28px;
       background: white;
       border-radius: 50%;
       display: flex;
@@ -55,8 +55,8 @@ export function createComponentStyles() {
 
     .iheard-eye-logo::before {
       content: '';
-      width: 10px;
-      height: 10px;
+      width: 14px;
+      height: 14px;
       background: #333;
       border-radius: 50%;
       position: absolute;
@@ -66,8 +66,8 @@ export function createComponentStyles() {
 
     /* Widget Avatar Styles */
     .iheard-widget-avatar {
-      width: 24px;
-      height: 24px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       overflow: hidden;
       display: flex;
@@ -84,8 +84,8 @@ export function createComponentStyles() {
     }
 
     .iheard-widget-avatar-placeholder {
-      width: 24px;
-      height: 24px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
@@ -93,7 +93,7 @@ export function createComponentStyles() {
       justify-content: center;
       color: white;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 16px;
     }
 
     /* Chat Header */

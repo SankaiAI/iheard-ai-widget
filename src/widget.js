@@ -157,13 +157,26 @@
       // Initialize core configuration
       await modules.core.initializeConfiguration();
       
-      // Create widget HTML structure
+      // Load agent configuration FIRST if agent ID is provided
+      const agentId = modules.core.getAgentIdFromUrl();
+      if (agentId) {
+        console.log('🔧 Loading configuration for agent:', agentId);
+        const configResult = await modules.api.loadAgentConfig(agentId);
+        
+        if (configResult === 'recreate') {
+          // Significant changes require widget recreation
+          setTimeout(() => initializeWidget(), 100);
+          return;
+        }
+      }
+
+      // NOW create widget HTML structure with correct configuration
       const widgetHTML = modules.ui.createWidgetHTML();
       
       // Apply styles
       const styles = modules.styles.createAllStyles();
       
-      // Create and inject widget
+      // Create and inject widget (with correct config already loaded)
       const widget = createWidgetElement(widgetHTML, styles);
       document.body.appendChild(widget);
 
@@ -177,21 +190,7 @@
         await modules.voice.initializeVoiceSystem();
       }
 
-      // Load agent configuration if agent ID is provided
-      const agentId = modules.core.getAgentIdFromUrl();
-      if (agentId) {
-        console.log('🔧 Loading configuration for agent:', agentId);
-        const configResult = await modules.api.loadAgentConfig(agentId);
-        
-        if (configResult === 'recreate') {
-          // Significant changes require widget recreation
-          widget.remove();
-          setTimeout(() => initializeWidget(), 100);
-          return;
-        }
-      }
-
-      // Update widget appearance with loaded configuration
+      // Update widget appearance with loaded configuration (final polish)
       modules.ui.updateWidgetAppearance(widget);
       
       // Show widget with smooth fade-in after configuration is applied
