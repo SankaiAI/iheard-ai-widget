@@ -22,7 +22,7 @@ export function createComponentStyles() {
       user-select: none;
       /* Default styling */
       border-radius: 30px;
-      padding: 12px 16px;
+      padding: 4px 16px;
       font-size: 14px;
       min-height: 60px;
     }
@@ -32,7 +32,7 @@ export function createComponentStyles() {
       min-height: 48px;
       font-size: 12px;
       gap: 6px;
-      padding: 9px 12px;
+      padding: 4px 12px;
       border-radius: 24px;
     }
 
@@ -40,7 +40,7 @@ export function createComponentStyles() {
       min-height: 60px;
       font-size: 14px;
       gap: 8px;
-      padding: 12px 16px;
+      padding: 4px 16px;
       border-radius: 30px;
     }
 
@@ -48,7 +48,7 @@ export function createComponentStyles() {
       min-height: 72px;
       font-size: 16px;
       gap: 10px;
-      padding: 15px 20px;
+      padding: 4px 20px;
       border-radius: 36px;
     }
 
