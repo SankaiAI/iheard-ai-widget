@@ -3,6 +3,13 @@
  * Manages user interactions, clicks, and UI events
  */
 
+/**
+ * Track user interaction for smart polling optimization
+ */
+function trackUserInteraction() {
+  window.iHeardLastInteraction = Date.now();
+}
+
 import { 
   isOpen, 
   isVoiceConnected, 
@@ -45,6 +52,7 @@ export function setupEventListeners(widget) {
 
   // Toggle chat
   button.addEventListener('click', () => {
+    trackUserInteraction();
     if (!widgetConfig.isEnabled) return;
     
     const newIsOpen = !isOpen;
@@ -148,6 +156,7 @@ export function setupEventListeners(widget) {
   // Send message on action button click
   if (actionBtn && input) {
     actionBtn.addEventListener('click', () => {
+      trackUserInteraction();
       sendMessage();
     });
   }
@@ -164,6 +173,7 @@ export function setupEventListeners(widget) {
   // Call button event listener
   if (callBtn) {
     callBtn.addEventListener('click', (e) => {
+      trackUserInteraction();
       e.preventDefault();
       e.stopPropagation();
       handleCallButtonClick();

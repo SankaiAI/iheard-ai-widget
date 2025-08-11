@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "buildDate": "2025-08-11T16:58:31.135Z",
-  "hash": "b573dc2e",
+  "buildDate": "2025-08-11T17:04:32.806Z",
+  "hash": "ddca6c5c",
   "size": 6592,
   "originalSize": 14599,
   "compression": 55,
   "cdnUrls": {
     "latest": "https://cdn.iheard.ai/widget.min.js",
     "versioned": "https://cdn.iheard.ai/widget-1.0.0.min.js",
-    "hashed": "https://cdn.iheard.ai/widget-b573dc2e.min.js"
+    "hashed": "https://cdn.iheard.ai/widget-ddca6c5c.min.js"
   }
 }

@@ -51,11 +51,38 @@ export async function loadAgentConfig(agentId, silent = false) {
 }
 
 /**
+ * Check if configuration polling should continue
+ * Skip polling if page is not visible or widget not active
+ * @returns {boolean} Whether to poll for configuration
+ */
+function shouldPollConfig() {
+  // Skip polling if page is hidden (user switched tabs)
+  if (document.hidden) {
+    return false;
+  }
+  
+  // Skip polling if widget is not active
+  const widget = document.getElementById('iheard-ai-widget');
+  if (!widget || !widget.classList.contains('configured')) {
+    return false;
+  }
+  
+  // Skip polling if no recent user interaction (idle optimization)
+  const lastInteraction = window.iHeardLastInteraction || Date.now();
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+  if (lastInteraction < fiveMinutesAgo) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Start polling for configuration updates
  * @param {string} agentId - Agent ID to poll for
- * @param {number} intervalMs - Polling interval in milliseconds (default: 30000)
+ * @param {number} intervalMs - Polling interval in milliseconds (default: 300000 - 5 minutes)
  */
-export function startConfigPolling(agentId, intervalMs = 30000) {
+export function startConfigPolling(agentId, intervalMs = 300000) { // 5 minutes instead of 30 seconds
   if (!agentId) return;
 
   // Clear existing interval
@@ -63,15 +90,26 @@ export function startConfigPolling(agentId, intervalMs = 30000) {
     clearInterval(configPollingInterval);
   }
 
-  // Start new polling interval
+  // Start new polling interval with smart conditions
   const interval = setInterval(() => {
-    if (agentId) {
+    if (agentId && shouldPollConfig()) {
       loadAgentConfig(agentId, true); // Silent polling
     }
   }, intervalMs);
 
   setConfigPollingInterval(interval);
   console.log(`🔄 Started configuration polling for agent ${agentId} every ${intervalMs}ms`);
+  
+  // Pause polling when page is hidden, resume when visible
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      console.log('⏸️ Page hidden - polling paused');
+    } else {
+      console.log('▶️ Page visible - polling resumed');
+      // Update last interaction time when page becomes visible
+      window.iHeardLastInteraction = Date.now();
+    }
+  });
 }
 
 /**
