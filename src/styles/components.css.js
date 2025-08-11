@@ -64,6 +64,38 @@ export function createComponentStyles() {
       transform-origin: center;
     }
 
+    /* Widget Avatar Styles */
+    .iheard-widget-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .iheard-widget-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .iheard-widget-avatar-placeholder {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
     /* Chat Header */
     .iheard-chat-header {
       background: #ffffff;

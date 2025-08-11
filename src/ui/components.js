@@ -64,10 +64,40 @@ function createWidgetButton() {
   }
 
   // Create button content based on style
-  if (widgetConfig.widgetStyle === 'eye-animation') {
-    button.innerHTML = '<div class="iheard-eye-logo"></div>';
-  } else {
-    button.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+  switch (widgetConfig.widgetStyle) {
+    case 'eye-animation':
+      button.innerHTML = '<div class="iheard-eye-logo"></div>';
+      break;
+    
+    case 'avatar':
+      // Use the same avatar as in header
+      if (widgetConfig.avatar) {
+        button.innerHTML = `<div class="iheard-widget-avatar"><img src="${widgetConfig.avatar}" alt="${widgetConfig.agentName}" /></div>`;
+      } else {
+        // Fallback to placeholder avatar
+        button.innerHTML = `<div class="iheard-widget-avatar-placeholder">${widgetConfig.agentName.charAt(0).toUpperCase()}</div>`;
+      }
+      break;
+    
+    case 'simple':
+      // Simple chat bubble icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+      break;
+    
+    case 'modern':
+      // Modern message icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>';
+      break;
+    
+    case 'minimal':
+      // Minimal plus icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>';
+      break;
+    
+    default:
+      // Default to simple chat icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+      break;
   }
 
   // Add button text if enabled
@@ -76,6 +106,58 @@ function createWidgetButton() {
   }
 
   return button;
+}
+
+/**
+ * Update widget button content based on style
+ * @param {HTMLElement} button - Widget button element
+ * @param {Object} config - Widget configuration
+ */
+function updateWidgetButtonContent(button, config) {
+  // Store existing button text if any
+  const existingButtonText = button.querySelector('.button-text');
+  let buttonTextHTML = '';
+  
+  if (existingButtonText && config.showButtonText) {
+    buttonTextHTML = `<span class="button-text">${config.buttonText}</span>`;
+  }
+  
+  // Update button content based on style
+  switch (config.widgetStyle) {
+    case 'eye-animation':
+      button.innerHTML = '<div class="iheard-eye-logo"></div>' + buttonTextHTML;
+      break;
+    
+    case 'avatar':
+      // Use the same avatar as in header
+      if (config.avatar) {
+        button.innerHTML = `<div class="iheard-widget-avatar"><img src="${config.avatar}" alt="${config.agentName}" /></div>` + buttonTextHTML;
+      } else {
+        // Fallback to placeholder avatar
+        button.innerHTML = `<div class="iheard-widget-avatar-placeholder">${config.agentName.charAt(0).toUpperCase()}</div>` + buttonTextHTML;
+      }
+      break;
+    
+    case 'simple':
+      // Simple chat bubble icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>' + buttonTextHTML;
+      break;
+    
+    case 'modern':
+      // Modern message icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>' + buttonTextHTML;
+      break;
+    
+    case 'minimal':
+      // Minimal plus icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>' + buttonTextHTML;
+      break;
+    
+    default:
+      // Default to simple chat icon
+      button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>' + buttonTextHTML;
+      break;
+  }
 }
 
 /**
@@ -656,13 +738,20 @@ export function updateWidgetAppearance(widget) {
   console.log('💬 User message bubble colors updated to:', userMessageBackground);
   console.log('📞 End chat button dynamic style updated to:', endChatButtonBackground);
   
-  // Update widget style classes
+  // Update widget style classes and button content
   if (widget && widgetConfig.widgetStyle) {
     // Remove old widget style classes
     widget.className = widget.className.replace(/widget-style-\S+/g, '').trim();
     // Add new widget style class
     widget.classList.add(`widget-style-${widgetConfig.widgetStyle}`);
     console.log('🎭 Widget style updated to:', widgetConfig.widgetStyle);
+    
+    // Update button content based on new style
+    const button = widget.querySelector('.iheard-widget-button');
+    if (button) {
+      updateWidgetButtonContent(button, widgetConfig);
+      console.log('🔄 Widget button content updated for style:', widgetConfig.widgetStyle);
+    }
   }
   
   // Update enabled/disabled state visibility
