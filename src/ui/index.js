@@ -22,8 +22,6 @@ export {
 export {
   addUserMessage,
   addAgentMessage,
-  showTypingIndicator,
-  hideTypingIndicator,
   showWelcomeMessage,
   removeWelcomeMessage,
   sendTextMessage,

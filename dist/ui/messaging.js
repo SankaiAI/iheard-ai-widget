@@ -590,45 +590,7 @@ export function removeThinkingDots() {
   }
 }
 
-/**
- * Show typing indicator
- * @returns {HTMLElement} Typing indicator element
- */
-export function showTypingIndicator() {
-  removeWelcomeMessage();
-  
-  const messagesContainer = document.querySelector('.iheard-chat-messages');
-  if (!messagesContainer) return null;
 
-  const typingIndicator = document.createElement('div');
-  typingIndicator.className = 'iheard-typing-indicator';
-  typingIndicator.innerHTML = `
-    <div class="message-content">
-      <span>AI is thinking</span>
-      <div class="typing-dots">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-      </div>
-    </div>
-  `;
-
-  messagesContainer.appendChild(typingIndicator);
-  
-  // DO NOT auto-scroll for typing indicator - maintain user's scroll position
-  
-  return typingIndicator;
-}
-
-/**
- * Hide typing indicator
- * @param {HTMLElement} indicator - Typing indicator element to remove
- */
-export function hideTypingIndicator(indicator) {
-  if (indicator && indicator.parentNode) {
-    indicator.parentNode.removeChild(indicator);
-  }
-}
 
 /**
  * Create and show animated welcome message
@@ -853,11 +815,8 @@ export async function sendTextMessage(message) {
       if (thinkingStatus) {
         removeThinkingStatus();
       }
-      const typingIndicator = showTypingIndicator();
       
       const response = await sendMessageToAgent(message, sessionId, userContext);
-      
-      hideTypingIndicator(typingIndicator);
       
       // Check if we have a structured response (product recommendations)
       if (response.type === 'product_recommendations' && response.products?.length > 0) {

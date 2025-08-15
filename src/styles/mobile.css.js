@@ -21,13 +21,60 @@ export function createMobileStyles() {
         pointer-events: none !important;
       }
       
-      /* Widget button positioning - restore pointer events */
+      /* Widget button positioning - respect position configuration */
       .iheard-widget-button {
         position: fixed !important;
-        bottom: 20px !important;
-        right: 20px !important;
         z-index: 999998 !important;
         pointer-events: auto !important;
+      }
+      
+      /* Position-specific button positioning for mobile */
+      .iheard-widget-container.position-bottom-right .iheard-widget-button {
+        bottom: 20px !important;
+        right: 20px !important;
+        top: auto !important;
+        left: auto !important;
+        transform: none !important;
+      }
+      
+      .iheard-widget-container.position-bottom-left .iheard-widget-button {
+        bottom: 20px !important;
+        left: 20px !important;
+        top: auto !important;
+        right: auto !important;
+        transform: none !important;
+      }
+      
+      .iheard-widget-container.position-top-right .iheard-widget-button {
+        top: 20px !important;
+        right: 20px !important;
+        bottom: auto !important;
+        left: auto !important;
+        transform: none !important;
+      }
+      
+      .iheard-widget-container.position-top-left .iheard-widget-button {
+        top: 20px !important;
+        left: 20px !important;
+        bottom: auto !important;
+        right: auto !important;
+        transform: none !important;
+      }
+      
+      .iheard-widget-container.position-center-right .iheard-widget-button {
+        top: 50% !important;
+        right: 20px !important;
+        bottom: auto !important;
+        left: auto !important;
+        transform: translateY(-50%) !important;
+      }
+      
+      .iheard-widget-container.position-center-left .iheard-widget-button {
+        top: 50% !important;
+        left: 20px !important;
+        bottom: auto !important;
+        right: auto !important;
+        transform: translateY(-50%) !important;
       }
       
       /* Chat interface full screen */
