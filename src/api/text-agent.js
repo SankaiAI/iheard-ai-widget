@@ -137,28 +137,47 @@ export async function startSession(config = {}) {
 }
 
 /**
- * End conversation session
+ * End conversation session and archive to CustomerSessionArchive
  * @param {string} sessionId - Session ID to end
- * @returns {Promise<boolean>} Success status
+ * @param {string} archivedBy - Who initiated the archive (default: 'user')
+ * @returns {Promise<Object>} Archive result with success status and details
  */
-export async function endSession(sessionId) {
+export async function endSession(sessionId, archivedBy = 'user') {
   const textAgentUrl = getTextAgentUrl();
   
   try {
-    const response = await fetch(`${textAgentUrl}/session/end`, {
+    const response = await fetch(`${textAgentUrl}/api/chat/end-session/${encodeURIComponent(sessionId)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        session_id: sessionId
+        archived_by: archivedBy
       })
     });
 
-    return response.ok;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Session ended and archived:', result);
+    
+    return {
+      success: true,
+      archive_id: result.archive_id,
+      archived_at: result.archived_at,
+      message_count: result.message_count,
+      session_duration_minutes: result.session_duration_minutes,
+      message: result.message
+    };
+
   } catch (error) {
     console.warn('⚠️ Session end failed:', error);
-    return false;
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
@@ -187,6 +206,68 @@ export async function getConversationHistory(sessionId) {
   } catch (error) {
     console.warn('⚠️ History fetch failed:', error);
     return [];
+  }
+}
+
+/**
+ * Check server health and connectivity
+ * @returns {Promise<boolean>} True if server is healthy
+ */
+export async function checkServerHealth() {
+  const textAgentUrl = getTextAgentUrl();
+  
+  try {
+    const response = await fetch(`${textAgentUrl}/api/admin/active-sessions`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+
+    if (response.ok) {
+      console.log('✅ Server is healthy');
+      return true;
+    } else {
+      console.warn('⚠️ Server responded with error:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Server connection failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Get server timezone information
+ * @returns {Promise<Object>} Timezone information
+ */
+export async function getServerTimezoneInfo() {
+  const textAgentUrl = getTextAgentUrl();
+  
+  try {
+    const response = await fetch(`${textAgentUrl}/api/timezone/info`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (response.ok) {
+      const timezoneInfo = await response.json();
+      console.log('🌍 Server timezone:', timezoneInfo.timezone);
+      return timezoneInfo;
+    } else {
+      throw new Error(`Timezone info request failed: ${response.status}`);
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to get timezone info:', error);
+    return { 
+      timezone: 'UTC',
+      error: error.message,
+      message: 'Failed to get timezone info, using UTC'
+    };
   }
 }
 

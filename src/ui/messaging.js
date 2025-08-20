@@ -26,7 +26,10 @@ import {
   getTextAgentUrl,
   sendMessageToAgent,
   getFallbackResponse,
-  generateSessionId
+  generateSessionId,
+  endSession,
+  checkServerHealth,
+  getServerTimezoneInfo
 } from '../api/index.js';
 import { 
   sendMessageWithThinkingStatus,
@@ -808,9 +811,10 @@ export async function sendTextMessage(message) {
   try {
     // Generate session ID and build user context
     const sessionId = generateSessionId();
+    currentWebSocketSessionId = sessionId; // Store for archiving
     const userContext = getUserContext();
     
-    console.log('🧠 Starting Sales Intelligence with real-time thinking...');
+    console.log('🧠 Starting Sales Intelligence with real-time thinking...', 'Session ID:', sessionId);
 
     // Try WebSocket first for real-time thinking status
     try {
@@ -931,6 +935,13 @@ export function clearMessages() {
   // Reset streaming message references
   setCurrentUserMessage(null);
   setCurrentAssistantMessage(null);
+  
+  // Reset session state for new conversation
+  sessionMessages = [];
+  sessionStartTime = Date.now();
+  lastPeriodicSave = Date.now();
+  sessionAnalyticsSent = false;
+  currentWebSocketSessionId = null;
 }
 
 /**
@@ -970,6 +981,14 @@ export function exportChatTranscript() {
  */
 export async function restoreChatHistory(messagesContainer) {
   try {
+    // First check if server is available
+    const serverHealthy = await checkServerHealth();
+    if (!serverHealthy) {
+      console.log('⚠️ Server not available, starting fresh session');
+      showConnectionError(messagesContainer);
+      return false;
+    }
+    
     // Initialize chat history service with current widget configuration
     const customerId = chatHistory.initialize({
       agentKey: currentApiKey,
@@ -1155,6 +1174,7 @@ let sessionMessages = [];
 let sessionStartTime = Date.now();
 let lastPeriodicSave = Date.now();
 let sessionAnalyticsSent = false;
+let currentWebSocketSessionId = null; // Store the active WebSocket session ID for archiving
 
 /**
  * Save message with hybrid approach: immediate analytics + batched content
@@ -1193,7 +1213,12 @@ function saveMessageToHistory(message, role = 'user') {
  * Get current session ID for message tracking
  */
 function getCurrentSessionId() {
-  // Try to get from current context or generate one
+  // Prioritize WebSocket session ID for archiving (if available)
+  if (currentWebSocketSessionId) {
+    return currentWebSocketSessionId;
+  }
+  
+  // Fallback to database-style session ID for backwards compatibility
   if (currentCustomerId) {
     return `cs_${currentCustomerId}_${sessionStartTime}`;
   }
@@ -1409,13 +1434,24 @@ async function handleEndChat() {
       const success = await archiveCurrentSession();
       
       if (success) {
-        // Show success message
-        addSystemMessage('Chat session ended successfully. Thank you for using our service!');
+        // Show detailed success message with archive info
+        const archiveResult = window.lastArchiveResult;
+        if (archiveResult) {
+          addSystemMessage(`Chat session ended successfully! 
+📦 Archive ID: ${archiveResult.archive_id}
+💬 ${archiveResult.message_count} messages saved
+⏱️ Session duration: ${archiveResult.session_duration_minutes} minutes
+Thank you for using our service!`);
+        } else {
+          addSystemMessage('Chat session ended successfully. Thank you for using our service!');
+        }
         
         // Clear the chat after a delay
         setTimeout(() => {
           clearMessages();
-        }, 3000);
+          // Reset session ID after chat ends
+          currentWebSocketSessionId = null;
+        }, 4000);
         
         // Close the widget
         setTimeout(() => {
@@ -1423,7 +1459,7 @@ async function handleEndChat() {
           if (chatInterface) {
             chatInterface.style.display = 'none';
           }
-        }, 5000);
+        }, 6000);
       } else {
         // Show error and reset button
         addSystemMessage('Failed to end chat session. Please try again.');
@@ -1514,162 +1550,49 @@ function resetEndChatButton() {
 }
 
 /**
- * Archive the current customer session
+ * Archive the current customer session using the new endpoint
  * @returns {Promise<boolean>} True if successful, false otherwise
  */
 async function archiveCurrentSession() {
   try {
-    const userContext = getUserContext();
-    if (!userContext.agent_key || !userContext.user_id) {
-      console.warn('⚠️ Cannot archive session - missing agent_key or user_id');
+    // Get current session ID
+    const sessionId = getCurrentSessionId();
+    if (!sessionId) {
+      console.warn('⚠️ Cannot archive session - no active session ID');
       return false;
     }
     
-    // Try text-agent-server first (primary archive endpoint)
-    let archiveUrl = `${getTextAgentUrl()}/api/session/archive`;
-    console.log('📦 Attempting to archive session via text-agent-server:', archiveUrl);
+    // Debug session ID information
+    console.log('📦 Archive session debug info:', {
+      currentWebSocketSessionId,
+      sessionId,
+      currentCustomerId,
+      sessionStartTime
+    });
     
-    try {
-      const response = await fetch(archiveUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agent_key: userContext.agent_key,
-          customer_id: userContext.user_id,
-          archived_by: 'user',
-          archive_reason: 'user_ended_chat'
-        })
+    console.log('📦 Attempting to archive current session:', sessionId);
+    
+    // Use the new endSession function that calls the improved endpoint
+    const result = await endSession(sessionId, 'user');
+    
+    if (result.success) {
+      console.log('✅ Session archived successfully:', {
+        archive_id: result.archive_id,
+        message_count: result.message_count,
+        session_duration: result.session_duration_minutes + ' minutes'
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Session archived successfully via text-agent-server:', result);
-        return true;
-      } else {
-        console.warn('⚠️ Text-agent-server archive failed:', response.status, response.statusText);
-        throw new Error(`Text agent archive failed: ${response.status}`);
-      }
-    } catch (textAgentError) {
-      console.warn('⚠️ Text-agent-server not available, trying voice-agent-server fallback');
+      // Store archive info for user display
+      window.lastArchiveResult = result;
       
-      // Fallback to voice-agent-server if text-agent-server fails
-      // Determine voice-agent-server URL by trying common ports
-      const textUrl = getTextAgentUrl();
-      let voiceAgentUrl;
-      
-      if (textUrl.includes(':8080')) {
-        // Standard development setup
-        voiceAgentUrl = textUrl.replace(':8080', ':8001');
-      } else if (textUrl.includes(':3000')) {
-        // Alternative setup
-        voiceAgentUrl = textUrl.replace(':3000', ':8001');
-      } else if (textUrl.includes('localhost')) {
-        // Generic localhost fallback
-        voiceAgentUrl = 'http://localhost:8001';
-      } else {
-        // Production or custom setup - try port 8001
-        const url = new URL(textUrl);
-        voiceAgentUrl = `${url.protocol}//${url.hostname}:8001`;
-      }
-      
-      archiveUrl = `${voiceAgentUrl}/api/session/archive`;
-      console.log('📦 Attempting fallback archive via voice-agent-server:', archiveUrl);
-      
-      try {
-        const fallbackResponse = await fetch(archiveUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            agent_key: userContext.agent_key,
-            customer_id: userContext.user_id,
-            archived_by: 'user',
-            archive_reason: 'user_ended_chat'
-          })
-        });
-        
-        if (fallbackResponse.ok) {
-          const result = await fallbackResponse.json();
-          console.log('✅ Session archived successfully via voice-agent-server fallback:', result);
-          return true;
-        } else {
-          console.error('❌ Voice-agent-server archive also failed:', fallbackResponse.status, fallbackResponse.statusText);
-          
-          // Last resort: try common voice-agent ports
-          const commonPorts = ['8001', '8002', '3001'];
-          for (const port of commonPorts) {
-            if (voiceAgentUrl.includes(`:${port}`)) continue; // Skip if already tried
-            
-            try {
-              const lastResortUrl = `http://localhost:${port}/api/session/archive`;
-              console.log(`📦 Last resort attempt on port ${port}:`, lastResortUrl);
-              
-              const lastResortResponse = await fetch(lastResortUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  agent_key: userContext.agent_key,
-                  customer_id: userContext.user_id,
-                  archived_by: 'user',
-                  archive_reason: 'user_ended_chat'
-                })
-              });
-              
-              if (lastResortResponse.ok) {
-                const result = await lastResortResponse.json();
-                console.log(`✅ Session archived successfully via port ${port}:`, result);
-                return true;
-              }
-            } catch (portError) {
-              console.warn(`⚠️ Port ${port} also failed:`, portError.message);
-            }
-          }
-          
-          return false;
-        }
-      } catch (voiceAgentError) {
-        console.error('❌ Voice-agent-server connection failed, trying last resort ports:', voiceAgentError);
-        
-        // Emergency fallback: try all common ports
-        const commonPorts = ['8001', '8002', '3001'];
-        for (const port of commonPorts) {
-          try {
-            const emergencyUrl = `http://localhost:${port}/api/session/archive`;
-            console.log(`📦 Emergency attempt on port ${port}:`, emergencyUrl);
-            
-            const emergencyResponse = await fetch(emergencyUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                agent_key: userContext.agent_key,
-                customer_id: userContext.user_id,
-                archived_by: 'user',
-                archive_reason: 'user_ended_chat'
-              })
-            });
-            
-            if (emergencyResponse.ok) {
-              const result = await emergencyResponse.json();
-              console.log(`✅ Session archived successfully via emergency port ${port}:`, result);
-              return true;
-            }
-          } catch (emergencyError) {
-            console.warn(`⚠️ Emergency port ${port} failed:`, emergencyError.message);
-          }
-        }
-        
-        return false;
-      }
+      return true;
+    } else {
+      console.error('❌ Session archive failed:', result.error);
+      return false;
     }
+    
   } catch (error) {
-    console.error('❌ Error archiving session:', error);
+    console.error('❌ Archive session error:', error);
     return false;
   }
 }
@@ -1696,4 +1619,56 @@ function addSystemMessage(message) {
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
   
   console.log('🔔 System message added:', message);
+}
+
+/**
+ * Show connection error message in the chat
+ * @param {HTMLElement} messagesContainer - Messages container element
+ */
+function showConnectionError(messagesContainer) {
+  if (!messagesContainer) return;
+  
+  const errorMessage = document.createElement('div');
+  errorMessage.className = 'iheard-connection-error';
+  errorMessage.innerHTML = `
+    <div class="error-content">
+      <div class="error-icon">🔌</div>
+      <div class="error-title">Unable to connect to chat server</div>
+      <div class="error-message">Please check if the server is running and try again.</div>
+      <button class="retry-button" onclick="location.reload()">🔄 Retry Connection</button>
+    </div>
+  `;
+  
+  errorMessage.style.cssText = `
+    padding: 20px;
+    margin: 10px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    text-align: center;
+    color: #dc2626;
+  `;
+  
+  const errorContent = errorMessage.querySelector('.error-content');
+  errorContent.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  `;
+  
+  const retryButton = errorMessage.querySelector('.retry-button');
+  retryButton.style.cssText = `
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 8px;
+  `;
+  
+  messagesContainer.appendChild(errorMessage);
+  console.log('🔌 Connection error message displayed');
 }

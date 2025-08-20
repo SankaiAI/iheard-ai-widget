@@ -10,7 +10,9 @@ export {
   startSession,
   endSession,
   getConversationHistory,
-  getFallbackResponse
+  getFallbackResponse,
+  checkServerHealth,
+  getServerTimezoneInfo
 } from './text-agent.js';
 
 export {
