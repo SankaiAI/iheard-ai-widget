@@ -815,6 +815,7 @@ export async function sendTextMessage(message) {
     const userContext = getUserContext();
     
     console.log('🧠 Starting Sales Intelligence with real-time thinking...', 'Session ID:', sessionId);
+    console.log('💾 WebSocket Session ID stored for archiving:', currentWebSocketSessionId);
 
     // Try WebSocket first for real-time thinking status
     try {
@@ -876,6 +877,12 @@ export async function sendTextMessage(message) {
       // Fallback to regular HTTP API
       if (thinkingStatus) {
         removeThinkingStatus();
+      }
+      
+      // Ensure we have the session ID stored even in fallback path
+      if (!currentWebSocketSessionId && sessionId) {
+        currentWebSocketSessionId = sessionId;
+        console.log('💾 WebSocket Session ID stored in fallback path:', currentWebSocketSessionId);
       }
       
       const response = await sendMessageToAgent(message, sessionId, userContext);
@@ -1226,6 +1233,23 @@ function getCurrentSessionId() {
 }
 
 /**
+ * Get session ID specifically for archiving - ensures WebSocket format
+ */
+function getArchiveSessionId() {
+  // If we have a stored WebSocket session ID, use it
+  if (currentWebSocketSessionId) {
+    return currentWebSocketSessionId;
+  }
+  
+  // If not, generate a WebSocket-style session ID for archiving
+  // This handles cases where the session was created through different paths
+  const archiveSessionId = `session_${sessionStartTime}_${Math.random().toString(36).substr(2, 9)}`;
+  console.log('🔄 Generated archive session ID (no WebSocket session found):', archiveSessionId);
+  
+  return archiveSessionId;
+}
+
+/**
  * Update session analytics immediately (lightweight data for real-time tracking)
  */
 function updateSessionAnalytics() {
@@ -1555,7 +1579,7 @@ function resetEndChatButton() {
  */
 async function archiveCurrentSession() {
   try {
-    // Get current session ID
+    // Get current session ID (should now be WebSocket format)
     const sessionId = getCurrentSessionId();
     if (!sessionId) {
       console.warn('⚠️ Cannot archive session - no active session ID');
@@ -1567,7 +1591,11 @@ async function archiveCurrentSession() {
       currentWebSocketSessionId,
       sessionId,
       currentCustomerId,
-      sessionStartTime
+      sessionStartTime,
+      'sessionId type': typeof sessionId,
+      'sessionId length': sessionId?.length,
+      'is database style': sessionId?.startsWith('cs_'),
+      'is websocket style': sessionId?.startsWith('session_')
     });
     
     console.log('📦 Attempting to archive current session:', sessionId);
