@@ -30,7 +30,8 @@ import {
 } from '../api/index.js';
 import { 
   sendMessageWithThinkingStatus,
-  cleanupThinkingWebSocket 
+  cleanupThinkingWebSocket,
+  sendAgentInterrupt
 } from '../api/websocket.js';
 import { 
   createThinkingStatusComponent,

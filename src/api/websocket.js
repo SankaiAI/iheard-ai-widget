@@ -111,6 +111,32 @@ class ThinkingStatusWebSocket {
     }
 
     /**
+     * Send interrupt signal to stop agent processing
+     */
+    sendInterrupt() {
+        if (!this.ws || !this.isConnected) {
+            console.warn('⚠️ Cannot send interrupt - WebSocket not connected');
+            return false;
+        }
+
+        const interruptData = {
+            type: 'interrupt',
+            session_id: this.sessionId,
+            action: 'stop_processing',
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            this.ws.send(JSON.stringify(interruptData));
+            console.log('⏸️ Interrupt signal sent to backend');
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to send interrupt signal:', error);
+            return false;
+        }
+    }
+
+    /**
      * Disconnect WebSocket
      */
     disconnect() {
@@ -218,6 +244,15 @@ export async function sendMessageWithThinkingStatus(message, sessionId, userCont
             reject(error);
         }
     });
+}
+
+/**
+ * Send interrupt signal to stop agent processing
+ * @returns {boolean} True if interrupt was sent successfully
+ */
+export function sendAgentInterrupt() {
+    const ws = getThinkingWebSocket();
+    return ws.sendInterrupt();
 }
 
 /**

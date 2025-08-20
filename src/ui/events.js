@@ -18,6 +18,7 @@ import {
   setConnecting,
   setVoiceConnected,
   isAgentProcessing,
+  isAgentThinking,
   isAgentResponding,
   canInterrupt,
   pauseRequested,
@@ -38,6 +39,7 @@ import {
   startEndChatTimer,
   clearEndChatTimer
 } from './messaging.js';
+import { sendAgentInterrupt } from '../api/websocket.js';
 import { toggleTranscription } from './transcription.js';
 import { 
   connectToLiveKit,
@@ -311,19 +313,20 @@ function sendMessage() {
     buttonDisabled: actionBtn.disabled
   });
   
-  // Check if this is a pause action during agent response
-  if (isAgentResponding && canInterrupt && actionBtn.classList.contains('pause')) {
+  // Check if this is a pause action during any agent processing
+  if ((isAgentResponding || isAgentThinking || isAgentProcessing) && actionBtn.classList.contains('pause')) {
     console.log('🎯 PAUSE ACTION DETECTED - calling handlePauseInterrupt');
     handlePauseInterrupt();
     return;
   }
   
-  // Prevent sending if agent is processing (input should be disabled but double-check)
-  if (isAgentProcessing || isConnecting) {
-    console.log('⏳ Cannot send message while agent is processing');
+  // Don't allow sending new messages while agent is processing
+  if (isAgentProcessing || isAgentThinking || isAgentResponding) {
+    console.log('⏸️ Agent is working - use pause button to interrupt');
     return;
   }
   
+  // Send message when agent is ready
   const message = input.value.trim();
   if (message) {
     addUserMessage(message);
@@ -337,6 +340,14 @@ function sendMessage() {
  */
 function handlePauseInterrupt() {
   console.log('⏸️ User requested pause/interrupt');
+  
+  // Send interrupt signal to backend to stop agent processing
+  const interruptSent = sendAgentInterrupt();
+  if (interruptSent) {
+    console.log('✅ Backend interrupt signal sent successfully');
+  } else {
+    console.warn('⚠️ Failed to send backend interrupt signal');
+  }
   
   // Set pause state
   setPauseRequested(true);

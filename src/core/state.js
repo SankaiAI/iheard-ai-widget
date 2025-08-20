@@ -163,46 +163,21 @@ function updateInputState() {
   
   // Determine current state
   let currentState = 'ready';
-  let shouldDisableInput = false;
   
-  if (isAgentThinking) {
-    currentState = 'thinking';
-    shouldDisableInput = true;
+  if (isAgentThinking || isAgentProcessing) {
+    currentState = 'processing';
   } else if (isAgentResponding) {
     currentState = 'responding';
-    shouldDisableInput = true;
-  } else if (isAgentProcessing) {
-    currentState = 'processing';
-    shouldDisableInput = true;
   }
   
-  // Update input state
-  input.disabled = shouldDisableInput;
+  // Keep input always visible and enabled
+  input.disabled = false;
+  input.placeholder = widgetConfig?.inputPlaceholder || 'Type your message...';
   
-  // Update placeholder text based on state
-  switch (currentState) {
-    case 'thinking':
-      input.placeholder = 'AI is thinking...';
-      break;
-    case 'responding':
-      input.placeholder = 'AI is responding... (click pause to interrupt)';
-      break;
-    case 'processing':
-      input.placeholder = 'Processing your message...';
-      break;
-    default:
-      input.placeholder = widgetConfig?.inputPlaceholder || 'Type your message...';
-      break;
-  }
-  
-  // Update button state
+  // Update button state - pause button appears immediately when agent starts processing
   updateActionButtonState(currentState);
   
-  // Update visual state classes
-  if (inputArea) {
-    inputArea.classList.toggle('agent-processing', shouldDisableInput);
-    inputArea.classList.toggle('can-interrupt', canInterrupt && isAgentResponding);
-  }
+  // No styling changes to input area background - keep it clean
 }
 
 /**
@@ -216,58 +191,39 @@ function updateActionButtonState(state) {
   actionBtn.classList.remove('processing', 'pause', 'send');
   
   switch (state) {
-    case 'thinking':
     case 'processing':
-      actionBtn.classList.add('processing');
-      actionBtn.disabled = true;
-      actionBtn.title = 'Processing...';
+      // Show pause button immediately when agent starts processing
+      console.log('🔴 Setting button to PAUSE mode during processing - immediately clickable');
+      actionBtn.classList.add('pause');
+      actionBtn.disabled = false;
+      actionBtn.title = 'Click to interrupt agent';
+      actionBtn.style.pointerEvents = 'auto';
       actionBtn.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="processing-spinner">
-          <circle cx="12" cy="12" r="3">
-            <animateTransform attributeName="transform" type="rotate" dur="1s" repeatCount="indefinite" values="0 12 12;360 12 12"/>
-          </circle>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pause-icon">
+          <rect x="9" y="6" width="2" height="12"></rect>
+          <rect x="13" y="6" width="2" height="12"></rect>
         </svg>
       `;
       break;
       
     case 'responding':
-      if (canInterrupt) {
-        console.log('🔴 Setting button to PAUSE mode - should be clickable');
-        actionBtn.classList.add('pause');
-        actionBtn.disabled = false;
-        actionBtn.title = 'Pause to interrupt';
-        actionBtn.style.pointerEvents = 'auto'; // Ensure it's clickable
-        actionBtn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pause-icon">
-            <rect x="9" y="6" width="2" height="12"></rect>
-            <rect x="13" y="6" width="2" height="12"></rect>
-          </svg>
-        `;
-        console.log('🔴 Pause button setup complete:', {
-          disabled: actionBtn.disabled,
-          classList: Array.from(actionBtn.classList),
-          pointerEvents: actionBtn.style.pointerEvents
-        });
-      } else {
-        console.log('🟡 Setting button to RESPONDING mode - not interruptible yet');
-        actionBtn.classList.add('processing');
-        actionBtn.disabled = true;
-        actionBtn.title = 'AI is responding...';
-        actionBtn.style.pointerEvents = 'none';
-        actionBtn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="responding-dots">
-            <circle cx="5" cy="12" r="2">
-              <animate attributeName="opacity" dur="1s" repeatCount="indefinite" values="0.3;1;0.3" begin="0s"/>
-            </circle>
-            <circle cx="12" cy="12" r="2">
-              <animate attributeName="opacity" dur="1s" repeatCount="indefinite" values="0.3;1;0.3" begin="0.33s"/>
-            </circle>
-            <circle cx="19" cy="12" r="2">
-              <animate attributeName="opacity" dur="1s" repeatCount="indefinite" values="0.3;1;0.3" begin="0.66s"/>
-            </circle>
-          </svg>
-        `;
-      }
+      // Always show pause button immediately when responding
+      console.log('🔴 Setting button to PAUSE mode - always clickable');
+      actionBtn.classList.add('pause');
+      actionBtn.disabled = false;
+      actionBtn.title = 'Click to interrupt agent';
+      actionBtn.style.pointerEvents = 'auto';
+      actionBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pause-icon">
+          <rect x="9" y="6" width="2" height="12"></rect>
+          <rect x="13" y="6" width="2" height="12"></rect>
+        </svg>
+      `;
+      console.log('🔴 Pause button setup complete:', {
+        disabled: actionBtn.disabled,
+        classList: Array.from(actionBtn.classList),
+        pointerEvents: actionBtn.style.pointerEvents
+      });
       break;
       
     default: // ready state
