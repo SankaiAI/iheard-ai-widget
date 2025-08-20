@@ -1236,5 +1236,138 @@ export function createMessageStyles() {
         transform: translateY(0);
       }
     }
+
+    /* Agent Processing State Styles */
+    .iheard-chat-input.agent-processing {
+      opacity: 0.8;
+    }
+
+    .iheard-chat-input.agent-processing .iheard-input {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: rgba(156, 163, 175, 0.1) !important;
+    }
+
+    .iheard-chat-input.agent-processing .iheard-input:disabled {
+      color: rgba(107, 114, 128, 0.8);
+    }
+
+    .default-appearance .iheard-chat-input.agent-processing .iheard-input {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .default-appearance .iheard-chat-input.agent-processing .iheard-input:disabled {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Action Button State Styles */
+    .iheard-action-btn.processing {
+      background: #6b7280 !important;
+      cursor: not-allowed;
+      animation: none;
+    }
+
+    .iheard-action-btn.pause {
+      background: #dc2626 !important;
+      animation: gentlePulse 2s infinite;
+      cursor: pointer;
+    }
+
+    .iheard-action-btn.pause:hover {
+      background: #b91c1c !important;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .iheard-action-btn.send {
+      background: #4f46e5 !important;
+      cursor: pointer;
+    }
+
+    .iheard-action-btn.send:hover {
+      background: #3730a3 !important;
+    }
+
+    /* Processing Spinner Animation */
+    .processing-spinner {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Gentle Pulse Animation for Pause Button */
+    @keyframes gentlePulse {
+      0%, 100% {
+        transform: translateY(-50%) scale(1);
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+      }
+      50% {
+        transform: translateY(-50%) scale(1.05);
+        box-shadow: 0 4px 16px rgba(220, 38, 38, 0.5);
+      }
+    }
+
+    /* Can Interrupt State */
+    .iheard-chat-input.can-interrupt {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .default-appearance .iheard-chat-input.can-interrupt {
+      background: rgba(245, 158, 11, 0.05);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    /* Pause Indicator Styles */
+    .iheard-pause-indicator {
+      align-self: center;
+      max-width: 90%;
+      margin: 8px auto;
+      animation: slideIn 0.3s ease;
+    }
+
+    .pause-message {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      text-align: center;
+      font-size: 13px;
+      padding: 10px 16px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .default-appearance .pause-message {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .pause-message svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
   `;
 }

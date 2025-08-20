@@ -12,7 +12,14 @@ import {
   setConnecting,
   currentApiKey,
   currentAgentId,
-  currentCustomerId
+  currentCustomerId,
+  isAgentProcessing,
+  pauseRequested,
+  setAgentProcessing,
+  setAgentThinking,
+  setAgentResponding,
+  setCanInterrupt,
+  setPauseRequested
 } from '../core/state.js';
 import { widgetConfig } from '../core/config.js';
 import { 
@@ -495,16 +502,42 @@ export function addAgentMessage(message, isFinal = true) {
   const messageContent = currentAssistantMessage.querySelector('.message-content');
   
   if (isFinal) {
-    // For final messages, show the typewriter effect
-    startTypewriterEffect(messageContent, formatMessageForDisplay(message));
+    // Keep responding state during typewriter effect if message is long enough
+    const shouldShowPauseDuringTypewriter = message.length > 50; // Show pause for longer messages
     
-    // Finalize the message after typewriter completes
-    currentAssistantMessage.classList.remove('streaming');
-    currentAssistantMessage.classList.add('final');
-    setCurrentAssistantMessage(null);
+    if (shouldShowPauseDuringTypewriter) {
+      console.log('📝 Long message - keeping pause button active during typewriter effect');
+      // For final messages, show the typewriter effect with pause capability
+      startTypewriterEffect(messageContent, formatMessageForDisplay(message), () => {
+        // Callback when typewriter completes
+        finalizeBotMessage();
+      });
+    } else {
+      console.log('📝 Short message - completing immediately');
+      // Short messages complete immediately
+      messageContent.innerHTML = formatMessageForDisplay(message);
+      finalizeBotMessage();
+    }
   } else {
     // For streaming messages, update immediately
     messageContent.innerHTML = formatMessageForDisplay(message);
+  }
+
+  function finalizeBotMessage() {
+    // Finalize the message
+    if (currentAssistantMessage) {
+      currentAssistantMessage.classList.remove('streaming');
+      currentAssistantMessage.classList.add('final');
+      setCurrentAssistantMessage(null);
+    }
+    
+    // Reset all agent states when message is complete
+    setAgentProcessing(false);
+    setAgentThinking(false);
+    setAgentResponding(false);
+    setCanInterrupt(false);
+    setPauseRequested(false);
+    console.log('✅ Agent message finalized - all states reset');
   }
 
   // DO NOT auto-scroll for agent messages - user controls scroll position
@@ -522,8 +555,9 @@ export function addAgentMessage(message, isFinal = true) {
  * Create typewriter effect for agent messages
  * @param {HTMLElement} container - The message content container
  * @param {string} htmlContent - The formatted HTML content to type out
+ * @param {Function} onComplete - Callback function when typewriter completes
  */
-function startTypewriterEffect(container, htmlContent) {
+function startTypewriterEffect(container, htmlContent, onComplete = null) {
   // Create a temporary element to parse the HTML
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
@@ -537,8 +571,17 @@ function startTypewriterEffect(container, htmlContent) {
   
   let currentIndex = 0;
   const typingSpeed = 15; // milliseconds per character
+  let isInterrupted = false;
   
   function typeNextCharacter() {
+    // Check if the user has paused/interrupted
+    if (pauseRequested || isInterrupted) {
+      console.log('⏸️ Typewriter effect interrupted');
+      container.innerHTML = htmlContent; // Show full content immediately
+      if (onComplete) onComplete();
+      return;
+    }
+    
     if (currentIndex < fullText.length) {
       typewriterSpan.textContent += fullText.charAt(currentIndex);
       currentIndex++;
@@ -547,9 +590,15 @@ function startTypewriterEffect(container, htmlContent) {
       // Typewriter complete, show formatted HTML
       setTimeout(() => {
         container.innerHTML = htmlContent;
+        if (onComplete) onComplete();
       }, 500);
     }
   }
+  
+  // Store interruption function for external access
+  container._interruptTypewriter = () => {
+    isInterrupted = true;
+  };
   
   // Start typing
   typeNextCharacter();
@@ -727,12 +776,14 @@ function isLikelyProductQuery(message) {
  * @param {string} message - Message to send
  */
 export async function sendTextMessage(message) {
-  if (isConnecting) {
+  if (isConnecting || isAgentProcessing) {
     console.log('⏳ Already processing a message, please wait...');
     return;
   }
 
   setConnecting(true);
+  setAgentProcessing(true);
+  setAgentThinking(true);
 
   // Get messages container for thinking status
   const messagesContainer = document.querySelector('.iheard-chat-messages');
@@ -779,6 +830,12 @@ export async function sendTextMessage(message) {
       if (thinkingStatus) {
         completeThinkingStatus();
       }
+      
+      // Transition from thinking to responding
+      setAgentThinking(false);
+      setAgentResponding(true);
+      setCanInterrupt(true); // Enable interrupt immediately
+      console.log('🎛️ Interrupt capability enabled immediately - pause button should be clickable');
       
       // Process the final response
       console.log('🎯 Processing final response:', response);
@@ -844,6 +901,7 @@ export async function sendTextMessage(message) {
     addAgentMessage(fallbackResponse);
   }
 
+  // Only reset connecting state here - other states reset when message completes
   setConnecting(false);
 }
 
@@ -1090,27 +1148,165 @@ function restoreStructuredResponse(structuredData, messagesContainer) {
 }
 
 /**
- * Save message to chat history
- * Helper function to be called by existing addUserMessage/addAgentMessage functions
- * @param {string} message - Message content
+ * Local session message storage and analytics tracking
+ */
+let sessionMessages = [];
+let sessionStartTime = Date.now();
+let lastPeriodicSave = Date.now();
+let sessionAnalyticsSent = false;
+
+/**
+ * Save message with hybrid approach: immediate analytics + batched content
+ * @param {string} message - Message content  
  * @param {string} role - Message role ('user' or 'assistant')
  */
 function saveMessageToHistory(message, role = 'user') {
   if (!currentApiKey) return;
   
-  if (role === 'user') {
-    chatHistory.saveUserMessage(message).catch(error => {
-      console.warn('Failed to save user message to chat history:', error);
-    });
-  } else {
-    chatHistory.saveAgentMessage(message).catch(error => {
-      console.warn('Failed to save agent message to chat history:', error);
-    });
+  // Store message locally for batching
+  const messageData = {
+    role,
+    content: message,
+    timestamp: new Date().toISOString(),
+    session_id: getCurrentSessionId()
+  };
+  
+  sessionMessages.push(messageData);
+  console.log(`💾 Message queued (${sessionMessages.length} total):`, role, message.substring(0, 50) + '...');
+  
+  // Send session analytics immediately (lightweight)
+  updateSessionAnalytics();
+  
+  // Batch save messages periodically (every 5 messages or 2 minutes)
+  const shouldPeriodicSave = (
+    sessionMessages.length % 5 === 0 || // Every 5 messages
+    (Date.now() - lastPeriodicSave) > 120000 // Every 2 minutes
+  );
+  
+  if (shouldPeriodicSave) {
+    saveMessagesBatch();
   }
 }
 
-// Export the helper for use in other modules if needed
-export { saveMessageToHistory };
+/**
+ * Get current session ID for message tracking
+ */
+function getCurrentSessionId() {
+  // Try to get from current context or generate one
+  if (currentCustomerId) {
+    return `cs_${currentCustomerId}_${sessionStartTime}`;
+  }
+  return `session_${sessionStartTime}`;
+}
+
+/**
+ * Update session analytics immediately (lightweight data for real-time tracking)
+ */
+function updateSessionAnalytics() {
+  if (!currentApiKey) return;
+  
+  const sessionId = getCurrentSessionId();
+  const analyticsData = {
+    session_id: sessionId,
+    message_count: sessionMessages.length,
+    last_activity: new Date().toISOString(),
+    customer_id: currentCustomerId || 'anonymous',
+    agent_id: currentAgentId || 'text-agent'
+  };
+  
+  // Send lightweight analytics data immediately
+  fetch(`${getTextAgentUrl()}/api/session/analytics`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${currentApiKey}`
+    },
+    body: JSON.stringify(analyticsData)
+  }).then(response => {
+    if (response.ok) {
+      console.log(`📊 Session analytics updated: ${sessionMessages.length} messages`);
+    } else {
+      console.warn('⚠️ Failed to update session analytics:', response.status);
+    }
+  }).catch(error => {
+    console.warn('⚠️ Analytics update error:', error);
+  });
+}
+
+/**
+ * Save accumulated messages to database in batches
+ */
+function saveMessagesBatch() {
+  if (!currentApiKey || sessionMessages.length === 0) return;
+  
+  const messagesToSave = [...sessionMessages]; // Copy array
+  sessionMessages.length = 0; // Clear the queue
+  lastPeriodicSave = Date.now();
+  
+  console.log(`💾 Saving batch of ${messagesToSave.length} messages...`);
+  
+  // Send batch of messages to database
+  fetch(`${getTextAgentUrl()}/api/chat/messages/batch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${currentApiKey}`
+    },
+    body: JSON.stringify({
+      messages: messagesToSave,
+      customer_id: currentCustomerId || 'anonymous',
+      agent_id: currentAgentId || 'text-agent'
+    })
+  }).then(response => {
+    if (response.ok) {
+      console.log(`✅ Batch saved successfully: ${messagesToSave.length} messages`);
+    } else {
+      console.warn('⚠️ Failed to save message batch:', response.status);
+      // Re-add messages to queue on failure
+      sessionMessages.unshift(...messagesToSave);
+    }
+  }).catch(error => {
+    console.error('❌ Batch save error:', error);
+    // Re-add messages to queue on error
+    sessionMessages.unshift(...messagesToSave);
+  });
+}
+
+/**
+ * Save all session messages to database (called on session end)
+ */
+async function saveSessionToDatabase() {
+  if (!currentApiKey || sessionMessages.length === 0) {
+    console.log('💾 No messages to save or missing API key');
+    return true;
+  }
+  
+  console.log(`💾 Saving ${sessionMessages.length} messages to database...`);
+  
+  try {
+    // Save all remaining messages in one final batch
+    if (sessionMessages.length > 0) {
+      await saveMessagesBatch();
+    }
+    
+    console.log('✅ All session messages saved to database successfully');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Failed to save session messages to database:', error);
+    return false;
+  }
+}
+
+/**
+ * Get current session message count
+ */
+function getSessionMessageCount() {
+  return sessionMessages.length;
+}
+
+// Export the helpers for use in other modules if needed
+export { saveMessageToHistory, saveSessionToDatabase, getSessionMessageCount };
 
 /**
  * End Chat Button Management
@@ -1207,7 +1403,8 @@ async function handleEndChat() {
       button.textContent = 'Ending Chat...';
       button.style.background = '#6b7280'; // Gray while processing
       
-      // Archive the session
+      // Save any remaining messages and archive the session
+      await saveSessionToDatabase();
       const success = await archiveCurrentSession();
       
       if (success) {

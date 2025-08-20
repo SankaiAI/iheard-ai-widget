@@ -16,7 +16,15 @@ import {
   isConnecting,
   setOpen,
   setConnecting,
-  setVoiceConnected
+  setVoiceConnected,
+  isAgentProcessing,
+  isAgentResponding,
+  canInterrupt,
+  pauseRequested,
+  setAgentProcessing,
+  setPauseRequested,
+  setAgentResponding,
+  setCanInterrupt
 } from '../core/state.js';
 import { widgetConfig } from '../core/config.js';
 import { updateCallButtonState } from './components.js';
@@ -292,14 +300,109 @@ async function handleCallButtonClick() {
  */
 function sendMessage() {
   const input = document.querySelector('.iheard-input');
-  if (!input) return;
+  const actionBtn = document.querySelector('.iheard-action-btn');
+  if (!input || !actionBtn) return;
+  
+  console.log('🎯 sendMessage called:', {
+    isAgentResponding,
+    canInterrupt,
+    hasPauseClass: actionBtn.classList.contains('pause'),
+    buttonClasses: Array.from(actionBtn.classList),
+    buttonDisabled: actionBtn.disabled
+  });
+  
+  // Check if this is a pause action during agent response
+  if (isAgentResponding && canInterrupt && actionBtn.classList.contains('pause')) {
+    console.log('🎯 PAUSE ACTION DETECTED - calling handlePauseInterrupt');
+    handlePauseInterrupt();
+    return;
+  }
+  
+  // Prevent sending if agent is processing (input should be disabled but double-check)
+  if (isAgentProcessing || isConnecting) {
+    console.log('⏳ Cannot send message while agent is processing');
+    return;
+  }
   
   const message = input.value.trim();
-  if (message && !isConnecting) {
+  if (message) {
     addUserMessage(message);
     input.value = '';
     sendTextMessage(message);
   }
+}
+
+/**
+ * Handle pause/interrupt action during agent response
+ */
+function handlePauseInterrupt() {
+  console.log('⏸️ User requested pause/interrupt');
+  
+  // Set pause state
+  setPauseRequested(true);
+  setAgentResponding(false);
+  setCanInterrupt(false);
+  setAgentProcessing(false);
+  
+  // Interrupt any ongoing typewriter effect
+  const messageContent = document.querySelector('.iheard-message.streaming .message-content');
+  if (messageContent && messageContent._interruptTypewriter) {
+    messageContent._interruptTypewriter();
+  }
+  
+  // Re-enable input for new message
+  const input = document.querySelector('.iheard-input');
+  if (input) {
+    input.disabled = false;
+    input.placeholder = 'Agent paused. Type your message...';
+    input.focus();
+  }
+  
+  // Reset button to send state
+  const actionBtn = document.querySelector('.iheard-action-btn');
+  if (actionBtn) {
+    actionBtn.classList.remove('pause', 'processing');
+    actionBtn.classList.add('send');
+    actionBtn.disabled = false;
+    actionBtn.title = 'Send message';
+    actionBtn.style.pointerEvents = 'auto';
+    actionBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
+      </svg>
+    `;
+  }
+  
+  // Add a pause indicator message
+  addPauseIndicator();
+}
+
+/**
+ * Add visual indicator that agent was paused
+ */
+function addPauseIndicator() {
+  const messagesContainer = document.querySelector('.iheard-chat-messages');
+  if (!messagesContainer) return;
+
+  const pauseIndicator = document.createElement('div');
+  pauseIndicator.className = 'iheard-pause-indicator';
+  pauseIndicator.innerHTML = `
+    <div class="pause-message">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="6" width="2" height="12"></rect>
+        <rect x="13" y="6" width="2" height="12"></rect>
+      </svg>
+      <span>Agent response paused. You can send a new message.</span>
+    </div>
+  `;
+  
+  messagesContainer.appendChild(pauseIndicator);
+  
+  // Scroll to show the pause indicator
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  
+  console.log('⏸️ Pause indicator added to chat');
 }
 
 
